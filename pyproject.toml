@@ -10,6 +10,7 @@ dependencies = [
     "langchain-openai",
     "langchain-core",
     "python-dotenv",
+    "flask>=3.1.1",
 ]
 
 [build-system]

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Article Analyzer - Analyze Claims{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h2 class="card-title mb-0">📊 Analyze Article Claims</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">Enter an article URL to analyze its claims and detect potential misinformation through "microlies" analysis.</p>
+                
+                <form method="POST" action="{{ url_for('analyze_article') }}">
+                    <div class="mb-3">
+                        <label for="url" class="form-label">Article URL *</label>
+                        <input type="url" class="form-control" id="url" name="url" required 
+                               placeholder="https://example.com/article"
+                               pattern="https?://.*">
+                        <div class="form-text">Enter the full URL of the article you want to analyze</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="skip_sentences" class="form-label">Skip Sentences</label>
+                                <input type="number" class="form-control" id="skip_sentences" name="skip_sentences" 
+                                       min="0" value="0" placeholder="0">
+                                <div class="form-text">Skip first N sentences</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="max_sentences" class="form-label">Max Sentences</label>
+                                <input type="number" class="form-control" id="max_sentences" name="max_sentences" 
+                                       min="1" placeholder="All">
+                                <div class="form-text">Limit analysis to N sentences</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="max_claims" class="form-label">Max Claims/Sentence</label>
+                                <input type="number" class="form-control" id="max_claims" name="max_claims" 
+                                       min="1" placeholder="All">
+                                <div class="form-text">Limit claims per sentence</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="analyzeBtn">
+                            <span class="spinner-border spinner-border-sm me-2 d-none" id="spinner"></span>
+                            🔍 Analyze Article
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-4">
+                    <h5>How it works:</h5>
+                    <ol class="small text-muted">
+                        <li><strong>Extract Claims:</strong> AI identifies potential claims in each sentence</li>
+                        <li><strong>Assess Interpretation:</strong> Calculate probability readers would interpret the author as making each claim</li>
+                        <li><strong>Evaluate Truth:</strong> Estimate probability each claim is actually true</li>
+                        <li><strong>Calculate Microlies:</strong> Combine probabilities using formula (P(claim made) × P(claim false))³</li>
+                        <li><strong>Aggregate Results:</strong> Sum microlies for sentences and entire article</li>
+                    </ol>
+                </div>
+
+                <div class="alert alert-info mt-3">
+                    <strong>Note:</strong> Analysis requires an OpenAI API key. Processing may take 1-2 minutes depending on article length.
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <h4>Sample Articles to Try:</h4>
+            <div class="list-group">
+                <button class="list-group-item list-group-item-action" onclick="fillUrl('https://forum.effectivealtruism.org/posts/YJ7Pk2bwTd3ieimG8/metr-measuring-ai-ability-to-complete-long-tasks')">
+                    📈 METR: Measuring AI ability to complete long tasks
+                </button>
+                <button class="list-group-item list-group-item-action" onclick="fillUrl('https://www.bbc.com/news')">
+                    📰 BBC News (latest article)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fillUrl(url) {
+    document.getElementById('url').value = url;
+}
+
+document.querySelector('form').addEventListener('submit', function() {
+    const btn = document.getElementById('analyzeBtn');
+    const spinner = document.getElementById('spinner');
+    
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing...';
+});
+</script>
+{% endblock %}

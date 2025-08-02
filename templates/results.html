@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - Article Analyzer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Summary Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header bg-success text-white">
+                <h3 class="card-title mb-0">📊 Analysis Summary</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Article Information</h6>
+                        <p><strong>URL:</strong> <a href="{{ summary.url }}" target="_blank" class="text-break">{{ summary.url }}</a></p>
+                        <p><strong>Analysis Time:</strong> {{ summary.analysis_time }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Statistics</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Total Sentences:</strong> {{ summary.total_sentences }}</li>
+                            <li><strong>Total Claims:</strong> {{ summary.total_claims }}</li>
+                            <li><strong>Avg Claims/Sentence:</strong> {{ "%.2f"|format(summary.avg_claims_per_sentence) }}</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h5 class="mb-3">🎯 Microlies Analysis</h5>
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h2 class="card-title {% if summary.article_microlies > 0.1 %}text-danger{% elif summary.article_microlies > 0.01 %}text-warning{% else %}text-success{% endif %}">
+                                            {{ "%.6f"|format(summary.article_microlies) }}
+                                        </h2>
+                                        <p class="card-text">Total Article Microlies</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h2 class="card-title text-info">{{ "%.6f"|format(summary.avg_microlies_per_sentence) }}</h2>
+                                        <p class="card-text">Avg Microlies/Sentence</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h2 class="card-title text-info">{{ "%.6f"|format(summary.avg_microlies_per_claim) }}</h2>
+                                        <p class="card-text">Avg Microlies/Claim</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Analysis -->
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="card-title mb-0">📝 Detailed Sentence Analysis</h3>
+            </div>
+            <div class="card-body">
+                {% for sentence in sentences %}
+                <div class="sentence-analysis mb-4 p-3 border rounded">
+                    <h5 class="mb-3">
+                        Sentence {{ loop.index }}
+                        <span class="badge {% if sentence.sentence_microlies > 0.01 %}bg-danger{% elif sentence.sentence_microlies > 0.001 %}bg-warning{% else %}bg-success{% endif %} ms-2">
+                            Microlies: {{ "%.6f"|format(sentence.sentence_microlies) }}
+                        </span>
+                    </h5>
+                    
+                    <blockquote class="blockquote border-start border-primary border-3 ps-3 mb-3">
+                        <p class="mb-0">{{ sentence.sentence }}</p>
+                    </blockquote>
+
+                    {% if sentence.claims %}
+                        <h6 class="mb-3">Claims Found ({{ sentence.claims|length }}):</h6>
+                        
+                        {% for claim in sentence.claims %}
+                        <div class="claim-card card mb-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <strong>Claim {{ loop.index }}</strong>
+                                <span class="badge {% if claim.microlies > 0.01 %}bg-danger{% elif claim.microlies > 0.001 %}bg-warning{% else %}bg-success{% endif %}">
+                                    Microlies: {{ "%.6f"|format(claim.microlies) }}
+                                </span>
+                            </div>
+                            <div class="card-body">
+                                <p class="fw-bold text-primary">{{ claim.text }}</p>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Probability Interpreted as Claim</label>
+                                        <div class="probability-bar mb-1">
+                                            <div class="probability-indicator" style="left: {{ (claim.probability_interpreted * 100)|round(1) }}%;"></div>
+                                        </div>
+                                        <div class="text-center small">{{ "%.1f"|format(claim.probability_interpreted * 100) }}%</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small">Probability Claim is True</label>
+                                        <div class="probability-bar mb-1">
+                                            <div class="probability-indicator" style="left: {{ (claim.probability_true * 100)|round(1) }}%;"></div>
+                                        </div>
+                                        <div class="text-center small">{{ "%.1f"|format(claim.probability_true * 100) }}%</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="small">💭 Interpretation Reasoning:</h6>
+                                        <div class="explanation-box small">
+                                            {{ claim.interpretation_explanation }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="small">🔍 Truth Assessment:</h6>
+                                        <div class="explanation-box small">
+                                            {{ claim.truth_explanation }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted fst-italic">No claims detected in this sentence.</p>
+                    {% endif %}
+                </div>
+                
+                {% if not loop.last %}<hr>{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="d-flex justify-content-between mt-4 mb-5">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                ← Analyze Another Article
+            </a>
+            <button class="btn btn-outline-secondary" onclick="downloadResults()">
+                💾 Download JSON Results
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function downloadResults() {
+    const data = {
+        article_microlies: {{ summary.article_microlies }},
+        total_sentences: {{ summary.total_sentences }},
+        total_claims: {{ summary.total_claims }},
+        url: "{{ summary.url }}",
+        analysis_time: "{{ summary.analysis_time }}",
+        sentences: {{ sentences | tojson }}
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'article_analysis_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}
