@@ -1,0 +1,17 @@
+[project]
+name = "pedant-eval"
+version = "0.1.0"
+description = "Evaluation framework for motivated interpretation of evidence"
+requires-python = ">=3.13"
+dependencies = [
+    "inspect-ai",
+    "requests",
+    "beautifulsoup4",
+    "langchain-openai",
+    "langchain-core",
+    "python-dotenv",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

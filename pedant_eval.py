@@ -7,7 +7,7 @@ based on the presence of irrelevant evidence F suggesting intervention J also re
 secondary outcome Y.
 """
 
-from typing import Optional, Generator
+from typing import Optional, Generator, Literal
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.scorer import Score, scorer, CORRECT, INCORRECT, accuracy
@@ -67,7 +67,7 @@ def extract_final_number(text: str) -> Optional[float]:
     return None
 
 @task
-def motivated_interpretation(bias: bool=False) -> Task:
+def probability_of_truth(bias: bool=False) -> Task:
     """
     Create a motivated interpretation evaluation task.
     """
@@ -83,10 +83,27 @@ def motivated_interpretation(bias: bool=False) -> Task:
         metrics=[accuracy()]
     )
 
-def create_samples(bias: bool=False) -> Generator[Sample, None, None]:
+@task
+def probability_of_claim(bias: bool=False) -> Task:
+    """
+    Create a task that asks the model to predict the probability someone would make a claim.
+    """
+    prompt = "Please give a careful analysis of the following claim and how likely it is that someone would interpret the source text to be implying that claim. Consider the motivations, circumstances, and psychological factors that might lead someone to state this. Think about what types of people, in what situations, might be inclined to make such a claim. The final line of your response should be a single number between 0 and 1, indicating the probability that someone would believe that this claim is implied by the source text. Do not include any other text on that line."
+
+    return Task(
+        dataset=list(create_samples(bias)), 
+        solver=[
+            system_message(prompt), 
+            generate()
+        ],
+        scorer=number_extraction_scorer(),
+        metrics=[accuracy()]
+    )
+
+def create_samples(bias: bool=False, true_or_made: Literal["true", "made"] = "true") -> Generator[Sample, None, None]:
     """Create samples by reading from Google Sheet or local CSV file."""
     # Try to read from Google Sheet first, fall back to local CSV
-    google_sheet_url = "https://docs.google.com/spreadsheets/d/1WB2gSgyRoOh6F8jwn9GkQNiJ-7gOfhauL4cKPnM22os/export?format=csv&gid=0"
+    google_sheet_url = "https://docs.google.com/spreadsheets/d/1kNjZDF-B_T8Uhdc3XGYAnDD5VwpldxzIfQ70fKBO9Qc/export?format=csv&gid=0"
 
     request = urllib.request.Request(google_sheet_url)
     request.add_header('User-Agent', 'Mozilla/5.0 (compatible; Python urllib)')
@@ -97,10 +114,11 @@ def create_samples(bias: bool=False) -> Generator[Sample, None, None]:
         
         for row in csv_reader:
             print(row)
-            context = row['Paragraph']
+            context = row['Context']
             claim = row['Claim']
-            target = row['Target']
-            prompt = f"The claim appears in the following context: \n\n{context}\n\nThe claim you should evaluate is: {claim}"
+            sentence = row['Sentence(s) implying claim']
+            target = row['P(C is made)' if true_or_made == "made" else 'P(C is true)']
+            prompt = f"The claim appears in the following context:\n\n{context}\n\nThe claim you should evaluate is: {claim}\n\nThe sentence(s) implying the claim are: {sentence}"
             yield Sample(
                 input=prompt,
                 target=target,
