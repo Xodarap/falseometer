@@ -258,7 +258,6 @@ class ArticleAnalyzer:
 
 def main():
     """Main function to run the article analyzer."""
-    import sys
     import argparse
     
     parser = argparse.ArgumentParser(description="Analyze articles for claims")
@@ -268,18 +267,21 @@ def main():
     
     args = parser.parse_args()
     
+    # Create output directory
+    os.makedirs("analysis_log", exist_ok=True)
+    
     analyzer = ArticleAnalyzer()
     results = analyzer.analyze_article(args.url, max_sentences=args.sentences, max_claims=args.claims)
     
-    # Save results
-    output_filename = "article_analysis_{}.json".format(args.url.split('/')[-1])
+    # Save results in analysis_log folder
+    output_filename = os.path.join("analysis_log", "article_analysis_{}.json".format(args.url.split('/')[-1]))
     analyzer.save_results(results, output_filename)
     
     # Print summary
     total_sentences = len(results)
     total_claims = sum(len(analysis.claims) for analysis in results)
     
-    print(f"\n=== ANALYSIS COMPLETE ===")
+    print("\n=== ANALYSIS COMPLETE ===")
     print(f"Total sentences analyzed: {total_sentences}")
     print(f"Total claims extracted: {total_claims}")
     if total_sentences > 0:
