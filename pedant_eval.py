@@ -13,6 +13,9 @@ from inspect_ai.dataset import Sample
 from inspect_ai.scorer import Score, scorer, CORRECT, INCORRECT, accuracy
 from inspect_ai.solver import system_message, generate
 import csv
+import urllib.request
+import urllib.error
+import io
 
 @scorer(metrics=[accuracy()])
 def number_extraction_scorer():
@@ -81,13 +84,22 @@ def motivated_interpretation(bias: bool=False) -> Task:
     )
 
 def create_samples(bias: bool=False) -> Generator[Sample, None, None]:
-    """Create samples by reading from CSV file."""
-    with open('samples.csv', 'r', newline='', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            context = row['context']
-            claim = row['claim']
-            target = row['target']
+    """Create samples by reading from Google Sheet or local CSV file."""
+    # Try to read from Google Sheet first, fall back to local CSV
+    google_sheet_url = "https://docs.google.com/spreadsheets/d/1WB2gSgyRoOh6F8jwn9GkQNiJ-7gOfhauL4cKPnM22os/export?format=csv&gid=0"
+
+    request = urllib.request.Request(google_sheet_url)
+    request.add_header('User-Agent', 'Mozilla/5.0 (compatible; Python urllib)')
+    
+    with urllib.request.urlopen(request) as response:
+        csv_data = response.read().decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(csv_data))
+        
+        for row in csv_reader:
+            print(row)
+            context = row['Paragraph']
+            claim = row['Claim']
+            target = row['Target']
             prompt = f"The claim appears in the following context: \n\n{context}\n\nThe claim you should evaluate is: {claim}"
             yield Sample(
                 input=prompt,
