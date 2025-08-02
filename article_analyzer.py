@@ -29,6 +29,8 @@ class Claim:
     text: str
     probability_interpreted: float
     probability_true: float
+    interpretation_explanation: str
+    truth_explanation: str
 
 
 @dataclass
@@ -76,8 +78,13 @@ class ArticleAnalyzer:
             - Whether the claim requires inference
             - How reasonable the interpretation is
             
-            IMPORTANT: Return ONLY a decimal number between 0 and 1. Do not include any explanation or other text.
-            Examples of correct responses: 0.8, 0.3, 0.95, 0.1"""),
+            Format your response as JSON with this structure:
+            
+                "explanation": "Brief explanation of your reasoning",
+                "probability": 0.75
+            
+            
+            The probability must be a decimal between 0 and 1."""),
             ("human", "Sentence: {sentence}\nPotential claim: {claim}")
         ])
         
@@ -91,8 +98,13 @@ class ArticleAnalyzer:
             - Logical consistency
             - Uncertainty and ambiguity
             
-            IMPORTANT: Return ONLY a decimal number between 0 and 1. Do not include any explanation or other text.
-            Examples of correct responses: 0.8, 0.3, 0.95, 0.1"""),
+            Format your response as JSON with this structure:
+            
+                "explanation": "Brief explanation of your reasoning",
+                "probability": 0.75
+            
+            
+            The probability must be a decimal between 0 and 1."""),
             ("human", "Claim: {claim}")
         ])
     
@@ -152,47 +164,79 @@ class ArticleAnalyzer:
             print(f"Error extracting claims from sentence: {str(e)}")
             return []
     
-    def calculate_interpretation_probability(self, sentence: str, claim: str) -> float:
+    def calculate_interpretation_probability(self, sentence: str, claim: str) -> tuple[float, str]:
         """Calculate probability someone would interpret the author as making this claim."""
         try:
             prompt_messages = self.interpretation_probability_prompt.format_messages(
                 sentence=sentence, claim=claim
             )
             
-            # Try to extract a number from the response
-            import re
-            numbers = re.findall(r'0?\.\d+|[01]\.?\d*', prob_text)
-            if numbers:
-                prob = float(numbers[0])
-                print(f"  DEBUG - Extracted number: {prob}")
-                return max(0.0, min(1.0, prob))  # Clamp to [0,1]
-            else:
-                return float(prob_text)
+            response = self.llm.invoke(prompt_messages)
+            response_text = response.content.strip()
+            
+            return self._parse_probability_response(response_text)
             
         except Exception as e:
             print(f"Error calculating interpretation probability: {str(e)}")
-            return 0.5  # Default to neutral probability
+            return 0.5, f"Error: {str(e)}"
     
-    def calculate_truth_probability(self, claim: str) -> float:
+    def calculate_truth_probability(self, claim: str) -> tuple[float, str]:
         """Calculate probability that the claim is true."""
         try:
-            prompt = self.truth_probability_prompt.format_messages(claim=claim)
-            response = self.llm.invoke(prompt)
+            prompt_messages = self.truth_probability_prompt.format_messages(claim=claim)
+            response = self.llm.invoke(prompt_messages)
+            response_text = response.content.strip()
             
-            prob_text = response.content.strip()
-            
-            # Try to extract a number from the response
-            import re
-            numbers = re.findall(r'0?\.\d+|[01]\.?\d*', prob_text)
-            if numbers:
-                prob = float(numbers[0])
-                return max(0.0, min(1.0, prob))  # Clamp to [0,1]
-            else:
-                return float(prob_text)
+            return self._parse_probability_response(response_text)
             
         except Exception as e:
             print(f"Error calculating truth probability: {str(e)}")
-            return 0.5  # Default to neutral probability
+            return 0.5, f"Error: {str(e)}"
+    
+    def _parse_probability_response(self, response_text: str) -> tuple[float, str]:
+        """Parse probability and explanation from LLM response."""
+        try:
+            # Clean up potential markdown formatting
+            cleaned_text = response_text.strip()
+            if cleaned_text.startswith('```json'):
+                cleaned_text = cleaned_text[7:]
+                if cleaned_text.endswith('```'):
+                    cleaned_text = cleaned_text[:-3]
+            elif cleaned_text.startswith('```'):
+                cleaned_text = cleaned_text[3:]
+                if cleaned_text.endswith('```'):
+                    cleaned_text = cleaned_text[:-3]
+            
+            cleaned_text = cleaned_text.strip()
+            
+            # Try to find JSON object in the text
+            import re
+            json_match = re.search(r'\{[^{}]*"explanation"[^{}]*"probability"[^{}]*\}', cleaned_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                result = json.loads(json_str)
+                prob = float(result.get("probability", 0.5))
+                explanation = result.get("explanation", "No explanation provided")
+                return max(0.0, min(1.0, prob)), explanation
+            else:
+                # Try parsing the whole cleaned text
+                result = json.loads(cleaned_text)
+                prob = float(result.get("probability", 0.5))
+                explanation = result.get("explanation", "No explanation provided")
+                return max(0.0, min(1.0, prob)), explanation
+            
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"  DEBUG - JSON parse error: {e}")
+            print(f"  DEBUG - Response text: '{response_text}'")
+            
+            # Fallback: try to extract number from text
+            import re
+            numbers = re.findall(r'0?\.\d+|[01]\.?\d*', response_text)
+            if numbers:
+                prob = float(numbers[0])
+                return max(0.0, min(1.0, prob)), f"Fallback parse: {response_text}"
+            else:
+                return 0.5, f"Parse failed: {response_text}"
     
     def analyze_article(self, url: str, max_sentences: int = None, max_claims: int = None) -> List[SentenceAnalysis]:
         """Analyze an entire article from URL."""
@@ -229,14 +273,16 @@ class ArticleAnalyzer:
             for claim_text in claim_texts:
                 print(f"  Analyzing claim: {claim_text}")
                 
-                # Calculate probabilities
-                prob_interpreted = self.calculate_interpretation_probability(sentence, claim_text)
-                prob_true = self.calculate_truth_probability(claim_text)
+                # Calculate probabilities with explanations
+                prob_interpreted, interp_explanation = self.calculate_interpretation_probability(sentence, claim_text)
+                prob_true, truth_explanation = self.calculate_truth_probability(claim_text)
                 
                 claim = Claim(
                     text=claim_text,
                     probability_interpreted=prob_interpreted,
-                    probability_true=prob_true
+                    probability_true=prob_true,
+                    interpretation_explanation=interp_explanation,
+                    truth_explanation=truth_explanation
                 )
                 claims.append(claim)
                 
@@ -259,7 +305,9 @@ class ArticleAnalyzer:
                     {
                         "text": claim.text,
                         "probability_interpreted": claim.probability_interpreted,
-                        "probability_true": claim.probability_true
+                        "probability_true": claim.probability_true,
+                        "interpretation_explanation": claim.interpretation_explanation,
+                        "truth_explanation": claim.truth_explanation
                     }
                     for claim in analysis.claims
                 ]
@@ -275,6 +323,7 @@ class ArticleAnalyzer:
 def main():
     """Main function to run the article analyzer."""
     import argparse
+    from datetime import datetime
     
     parser = argparse.ArgumentParser(description="Analyze articles for claims")
     parser.add_argument("url", help="URL of the article to analyze")
@@ -289,8 +338,10 @@ def main():
     analyzer = ArticleAnalyzer()
     results = analyzer.analyze_article(args.url, max_sentences=args.sentences, max_claims=args.claims)
     
-    # Save results in analysis_log folder
-    output_filename = os.path.join("analysis_log", "article_analysis_{}.json".format(args.url.split('/')[-1]))
+    # Save results in analysis_log folder with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    article_id = args.url.split('/')[-1]
+    output_filename = os.path.join("analysis_log", f"article_analysis_{article_id}_{timestamp}.json")
     analyzer.save_results(results, output_filename)
     
     # Print summary
