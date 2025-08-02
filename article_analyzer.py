@@ -45,7 +45,7 @@ class SentenceAnalysis:
 class ArticleAnalyzer:
     """LangChain agent for analyzing articles and extracting claims."""
     
-    def __init__(self, model_name: str = "gpt-3.5-turbo"):
+    def __init__(self, model_name: str = "gpt-4.1-mini"):
         """Initialize the analyzer with a language model."""
         load_dotenv()
         if not os.getenv("OPENAI_API_KEY"):
