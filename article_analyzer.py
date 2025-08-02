@@ -57,17 +57,17 @@ class ArticleAnalyzer:
         """Set up the prompt templates for different analysis tasks."""
         
         self.claim_extraction_prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content="""You are an expert at identifying claims made in text. 
+            ("system", """You are an expert at identifying claims made in text. 
             Given a sentence, identify all possible claims that someone might interpret the author as making.
             A claim is a statement that can be true or false.
             
             Return your response as a JSON list of strings, where each string is a potential claim.
             Example: ["The economy is improving", "Unemployment rates are falling"]"""),
-            HumanMessage(content="Sentence: {sentence}")
+            ("human", "Sentence: {sentence}")
         ])
         
         self.interpretation_probability_prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content="""You are an expert at understanding how people interpret text.
+            ("system", """You are an expert at understanding how people interpret text.
             Given a sentence and a potential claim, estimate the probability (0-1) that someone would 
             interpret the author as making that claim.
             
@@ -76,12 +76,13 @@ class ArticleAnalyzer:
             - Whether the claim requires inference
             - How reasonable the interpretation is
             
-            Return only a single number between 0 and 1."""),
-            HumanMessage(content="Sentence: {sentence}\nPotential claim: {claim}")
+            IMPORTANT: Return ONLY a decimal number between 0 and 1. Do not include any explanation or other text.
+            Examples of correct responses: 0.8, 0.3, 0.95, 0.1"""),
+            ("human", "Sentence: {sentence}\nPotential claim: {claim}")
         ])
         
         self.truth_probability_prompt = ChatPromptTemplate.from_messages([
-            SystemMessage(content="""You are an expert at evaluating the truth of claims.
+            ("system", """You are an expert at evaluating the truth of claims.
             Given a claim, estimate the probability (0-1) that the claim is true.
             
             Consider:
@@ -90,8 +91,9 @@ class ArticleAnalyzer:
             - Logical consistency
             - Uncertainty and ambiguity
             
-            Return only a single number between 0 and 1."""),
-            HumanMessage(content="Claim: {claim}")
+            IMPORTANT: Return ONLY a decimal number between 0 and 1. Do not include any explanation or other text.
+            Examples of correct responses: 0.8, 0.3, 0.95, 0.1"""),
+            ("human", "Claim: {claim}")
         ])
     
     def fetch_article(self, url: str) -> str:
@@ -134,7 +136,7 @@ class ArticleAnalyzer:
         """Extract potential claims from a sentence."""
         try:
             prompt = self.claim_extraction_prompt.format_messages(sentence=sentence)
-            response = self.llm(prompt)
+            response = self.llm.invoke(prompt)
             
             # Parse JSON response
             claims_text = response.content.strip()
@@ -153,13 +155,19 @@ class ArticleAnalyzer:
     def calculate_interpretation_probability(self, sentence: str, claim: str) -> float:
         """Calculate probability someone would interpret the author as making this claim."""
         try:
-            prompt = self.interpretation_probability_prompt.format_messages(
+            prompt_messages = self.interpretation_probability_prompt.format_messages(
                 sentence=sentence, claim=claim
             )
-            response = self.llm(prompt)
             
-            prob_text = response.content.strip()
-            return float(prob_text)
+            # Try to extract a number from the response
+            import re
+            numbers = re.findall(r'0?\.\d+|[01]\.?\d*', prob_text)
+            if numbers:
+                prob = float(numbers[0])
+                print(f"  DEBUG - Extracted number: {prob}")
+                return max(0.0, min(1.0, prob))  # Clamp to [0,1]
+            else:
+                return float(prob_text)
             
         except Exception as e:
             print(f"Error calculating interpretation probability: {str(e)}")
@@ -169,10 +177,18 @@ class ArticleAnalyzer:
         """Calculate probability that the claim is true."""
         try:
             prompt = self.truth_probability_prompt.format_messages(claim=claim)
-            response = self.llm(prompt)
+            response = self.llm.invoke(prompt)
             
             prob_text = response.content.strip()
-            return float(prob_text)
+            
+            # Try to extract a number from the response
+            import re
+            numbers = re.findall(r'0?\.\d+|[01]\.?\d*', prob_text)
+            if numbers:
+                prob = float(numbers[0])
+                return max(0.0, min(1.0, prob))  # Clamp to [0,1]
+            else:
+                return float(prob_text)
             
         except Exception as e:
             print(f"Error calculating truth probability: {str(e)}")
