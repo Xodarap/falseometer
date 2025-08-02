@@ -7,13 +7,12 @@ based on the presence of irrelevant evidence F suggesting intervention J also re
 secondary outcome Y.
 """
 
-from typing import List, Optional, Tuple, Literal, Generator
+from typing import Optional, Generator
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
-from inspect_ai.scorer import Score, scorer, CORRECT, INCORRECT, accuracy, Metric, SampleScore, metric
+from inspect_ai.scorer import Score, scorer, CORRECT, INCORRECT, accuracy
 from inspect_ai.solver import system_message, generate
-from inspect_ai.model import ChatMessageUser, ChatMessageAssistant
-import numpy as np
+import csv
 
 @scorer(metrics=[accuracy()])
 def number_extraction_scorer():
@@ -82,22 +81,16 @@ def motivated_interpretation(bias: bool=False) -> Task:
     )
 
 def create_samples(bias: bool=False) -> Generator[Sample, None, None]:
-    """Create example samples for testing the evaluation."""
-    context = "D.R. Horton, the nation’s largest homebuilder, continues demonstrating why it is a market leader in the U.S. housing sector. Not content to be No. 1 in rankings by volume and revenues, Horton's perhaps-unwritten rule is also to be best at making homes accessible and attainable to Main Street Americans, profitably."
-    claim = "The U.S. housing sector has identifiable market leaders"
-    prompt = f"The claim appears in teh following context: \n\n{context}\n\nThe claim you should evaluate is: {claim}"
-    yield Sample(
-        input=prompt,
-        target="A",  # Expected answer for baseline
-        metadata={}
-    )
-    # yield Sample(
-    #     input="Paris is the capital of France",
-    #     target="A",  # Expected answer for baseline
-    #     metadata={}
-    # )
-    # yield Sample(
-    #     input="The U.S. housing sector has identifiable market leaders",
-    #     target="A",  # Expected answer for baseline
-    #     metadata={}
-    # )
+    """Create samples by reading from CSV file."""
+    with open('samples.csv', 'r', newline='', encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            context = row['context']
+            claim = row['claim']
+            target = row['target']
+            prompt = f"The claim appears in the following context: \n\n{context}\n\nThe claim you should evaluate is: {claim}"
+            yield Sample(
+                input=prompt,
+                target=target,
+                metadata={}
+            )
