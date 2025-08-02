@@ -238,13 +238,18 @@ class ArticleAnalyzer:
             else:
                 return 0.5, f"Parse failed: {response_text}"
     
-    def analyze_article(self, url: str, max_sentences: int = None, max_claims: int = None) -> List[SentenceAnalysis]:
+    def analyze_article(self, url: str, max_sentences: int = None, max_claims: int = None, skip_sentences: int = 0) -> List[SentenceAnalysis]:
         """Analyze an entire article from URL."""
         print(f"Fetching article from: {url}")
         article_text = self.fetch_article(url)
         
         print("Splitting article into sentences...")
         sentences = self.split_into_sentences(article_text)
+        
+        # Skip sentences if specified
+        if skip_sentences > 0:
+            sentences = sentences[skip_sentences:]
+            print(f"Skipping first {skip_sentences} sentences")
         
         # Limit sentences if specified
         if max_sentences:
@@ -329,6 +334,7 @@ def main():
     parser.add_argument("url", help="URL of the article to analyze")
     parser.add_argument("--sentences", type=int, help="Limit number of sentences to analyze")
     parser.add_argument("--claims", type=int, help="Limit number of claims to analyze per sentence")
+    parser.add_argument("--skip", type=int, default=0, help="Skip the first N sentences")
     
     args = parser.parse_args()
     
@@ -336,7 +342,7 @@ def main():
     os.makedirs("analysis_log", exist_ok=True)
     
     analyzer = ArticleAnalyzer()
-    results = analyzer.analyze_article(args.url, max_sentences=args.sentences, max_claims=args.claims)
+    results = analyzer.analyze_article(args.url, max_sentences=args.sentences, max_claims=args.claims, skip_sentences=args.skip)
     
     # Save results in analysis_log folder with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
