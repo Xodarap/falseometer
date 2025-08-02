@@ -70,42 +70,44 @@ class ArticleAnalyzer:
         
         self.interpretation_probability_prompt = ChatPromptTemplate.from_messages([
             ("system", """You are an expert at understanding how people interpret text.
-            Given a sentence and a potential claim, estimate the probability (0-1) that someone would 
+            Given a sentence from an article and a potential claim, estimate the probability (0-1) that someone would 
             interpret the author as making that claim.
             
             Consider:
             - How directly the sentence states the claim
             - Whether the claim requires inference
             - How reasonable the interpretation is
+            - The context provided by the full article
             
             Format your response as JSON with this structure:
-            
+            {{
                 "explanation": "Brief explanation of your reasoning",
                 "probability": 0.75
-            
+            }}
             
             The probability must be a decimal between 0 and 1."""),
-            ("human", "Sentence: {sentence}\nPotential claim: {claim}")
+            ("human", "Full article text:\n{article_text}\n\nSpecific sentence: {sentence}\nPotential claim: {claim}")
         ])
         
         self.truth_probability_prompt = ChatPromptTemplate.from_messages([
             ("system", """You are an expert at evaluating the truth of claims.
-            Given a claim, estimate the probability (0-1) that the claim is true.
+            Given a claim from an article, estimate the probability (0-1) that the claim is true.
             
             Consider:
-            - Available evidence
+            - Available evidence in the article
             - Common knowledge
             - Logical consistency
             - Uncertainty and ambiguity
+            - Context provided by the full article
             
             Format your response as JSON with this structure:
-            
+            {{
                 "explanation": "Brief explanation of your reasoning",
                 "probability": 0.75
-            
+            }}
             
             The probability must be a decimal between 0 and 1."""),
-            ("human", "Claim: {claim}")
+            ("human", "Full article text:\n{article_text}\n\nClaim to evaluate: {claim}")
         ])
     
     def fetch_article(self, url: str) -> str:
@@ -164,11 +166,11 @@ class ArticleAnalyzer:
             print(f"Error extracting claims from sentence: {str(e)}")
             return []
     
-    def calculate_interpretation_probability(self, sentence: str, claim: str) -> tuple[float, str]:
+    def calculate_interpretation_probability(self, sentence: str, claim: str, article_text: str) -> tuple[float, str]:
         """Calculate probability someone would interpret the author as making this claim."""
         try:
             prompt_messages = self.interpretation_probability_prompt.format_messages(
-                sentence=sentence, claim=claim
+                article_text=article_text, sentence=sentence, claim=claim
             )
             
             response = self.llm.invoke(prompt_messages)
@@ -180,10 +182,12 @@ class ArticleAnalyzer:
             print(f"Error calculating interpretation probability: {str(e)}")
             return 0.5, f"Error: {str(e)}"
     
-    def calculate_truth_probability(self, claim: str) -> tuple[float, str]:
+    def calculate_truth_probability(self, claim: str, article_text: str) -> tuple[float, str]:
         """Calculate probability that the claim is true."""
         try:
-            prompt_messages = self.truth_probability_prompt.format_messages(claim=claim)
+            prompt_messages = self.truth_probability_prompt.format_messages(
+                article_text=article_text, claim=claim
+            )
             response = self.llm.invoke(prompt_messages)
             response_text = response.content.strip()
             
@@ -279,8 +283,8 @@ class ArticleAnalyzer:
                 print(f"  Analyzing claim: {claim_text}")
                 
                 # Calculate probabilities with explanations
-                prob_interpreted, interp_explanation = self.calculate_interpretation_probability(sentence, claim_text)
-                prob_true, truth_explanation = self.calculate_truth_probability(claim_text)
+                prob_interpreted, interp_explanation = self.calculate_interpretation_probability(sentence, claim_text, article_text)
+                prob_true, truth_explanation = self.calculate_truth_probability(claim_text, article_text)
                 
                 claim = Claim(
                     text=claim_text,
