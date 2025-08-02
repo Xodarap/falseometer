@@ -290,7 +290,7 @@ class ArticleAnalyzer:
                 
                 # Calculate microlies: (p(claim made) * p(claim false))^3
                 prob_false = 1.0 - prob_true
-                microlies = (prob_interpreted * prob_false) ** 3
+                microlies = (prob_interpreted * prob_false) ** 3 * 1000000
                 
                 claim = Claim(
                     text=claim_text,
