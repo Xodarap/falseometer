@@ -31,6 +31,7 @@ class Claim:
     probability_true: float
     interpretation_explanation: str
     truth_explanation: str
+    microlies: float
 
 
 @dataclass
@@ -38,6 +39,7 @@ class SentenceAnalysis:
     """Represents the analysis of a single sentence."""
     sentence: str
     claims: List[Claim]
+    sentence_microlies: float
 
 
 class ArticleAnalyzer:
@@ -286,47 +288,75 @@ class ArticleAnalyzer:
                 prob_interpreted, interp_explanation = self.calculate_interpretation_probability(sentence, claim_text, article_text)
                 prob_true, truth_explanation = self.calculate_truth_probability(claim_text, article_text)
                 
+                # Calculate microlies: (p(claim made) * p(claim false))^3
+                prob_false = 1.0 - prob_true
+                microlies = (prob_interpreted * prob_false) ** 3
+                
                 claim = Claim(
                     text=claim_text,
                     probability_interpreted=prob_interpreted,
                     probability_true=prob_true,
                     interpretation_explanation=interp_explanation,
-                    truth_explanation=truth_explanation
+                    truth_explanation=truth_explanation,
+                    microlies=microlies
                 )
                 claims.append(claim)
                 
                 print(f"    P(interpreted): {prob_interpreted:.3f}")
                 print(f"    P(true): {prob_true:.3f}")
+                print(f"    Microlies: {microlies:.6f}")
             
-            analysis = SentenceAnalysis(sentence=sentence, claims=claims)
+            # Calculate sentence-level microlies (sum of all claim microlies)
+            sentence_microlies = sum(claim.microlies for claim in claims)
+            
+            analysis = SentenceAnalysis(
+                sentence=sentence, 
+                claims=claims,
+                sentence_microlies=sentence_microlies
+            )
             results.append(analysis)
+            
+            print(f"  Sentence microlies total: {sentence_microlies:.6f}")
         
         return results
     
     def save_results(self, results: List[SentenceAnalysis], filename: str):
         """Save analysis results to a JSON file."""
-        output_data = []
+        sentences_data = []
         
         for analysis in results:
             sentence_data = {
                 "sentence": analysis.sentence,
+                "sentence_microlies": analysis.sentence_microlies,
                 "claims": [
                     {
                         "text": claim.text,
                         "probability_interpreted": claim.probability_interpreted,
                         "probability_true": claim.probability_true,
                         "interpretation_explanation": claim.interpretation_explanation,
-                        "truth_explanation": claim.truth_explanation
+                        "truth_explanation": claim.truth_explanation,
+                        "microlies": claim.microlies
                     }
                     for claim in analysis.claims
                 ]
             }
-            output_data.append(sentence_data)
+            sentences_data.append(sentence_data)
+        
+        # Calculate article-level microlies (sum of all sentence microlies)
+        article_microlies = sum(analysis.sentence_microlies for analysis in results)
+        
+        output_data = {
+            "article_microlies": article_microlies,
+            "total_sentences": len(results),
+            "total_claims": sum(len(analysis.claims) for analysis in results),
+            "sentences": sentences_data
+        }
         
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=2, ensure_ascii=False)
         
         print(f"Results saved to {filename}")
+        print(f"Article microlies total: {article_microlies:.6f}")
 
 
 def main():
@@ -357,12 +387,17 @@ def main():
     # Print summary
     total_sentences = len(results)
     total_claims = sum(len(analysis.claims) for analysis in results)
+    total_microlies = sum(analysis.sentence_microlies for analysis in results)
     
     print("\n=== ANALYSIS COMPLETE ===")
     print(f"Total sentences analyzed: {total_sentences}")
     print(f"Total claims extracted: {total_claims}")
+    print(f"Total article microlies: {total_microlies:.6f}")
     if total_sentences > 0:
         print(f"Average claims per sentence: {total_claims/total_sentences:.2f}")
+        print(f"Average microlies per sentence: {total_microlies/total_sentences:.6f}")
+    if total_claims > 0:
+        print(f"Average microlies per claim: {total_microlies/total_claims:.6f}")
 
 
 if __name__ == "__main__":
