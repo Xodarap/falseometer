@@ -178,14 +178,20 @@ class ArticleAnalyzer:
             print(f"Error calculating truth probability: {str(e)}")
             return 0.5  # Default to neutral probability
     
-    def analyze_article(self, url: str) -> List[SentenceAnalysis]:
+    def analyze_article(self, url: str, max_sentences: int = None, max_claims: int = None) -> List[SentenceAnalysis]:
         """Analyze an entire article from URL."""
         print(f"Fetching article from: {url}")
         article_text = self.fetch_article(url)
         
         print("Splitting article into sentences...")
         sentences = self.split_into_sentences(article_text)
-        print(f"Found {len(sentences)} sentences")
+        
+        # Limit sentences if specified
+        if max_sentences:
+            sentences = sentences[:max_sentences]
+            print(f"Limiting to first {max_sentences} sentences")
+        
+        print(f"Found {len(sentences)} sentences to analyze")
         
         results = []
         
@@ -195,7 +201,13 @@ class ArticleAnalyzer:
             
             # Extract claims from sentence
             claim_texts = self.extract_claims(sentence)
-            print(f"Found {len(claim_texts)} potential claims")
+            
+            # Limit claims if specified
+            if max_claims:
+                claim_texts = claim_texts[:max_claims]
+                print(f"Found {len(claim_texts)} potential claims (limited to {max_claims})")
+            else:
+                print(f"Found {len(claim_texts)} potential claims")
             
             claims = []
             for claim_text in claim_texts:
@@ -247,18 +259,20 @@ class ArticleAnalyzer:
 def main():
     """Main function to run the article analyzer."""
     import sys
+    import argparse
     
-    if len(sys.argv) != 2:
-        print("Usage: python article_analyzer.py <url>")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Analyze articles for claims")
+    parser.add_argument("url", help="URL of the article to analyze")
+    parser.add_argument("--sentences", type=int, help="Limit number of sentences to analyze")
+    parser.add_argument("--claims", type=int, help="Limit number of claims to analyze per sentence")
     
-    url = sys.argv[1]
+    args = parser.parse_args()
     
     analyzer = ArticleAnalyzer()
-    results = analyzer.analyze_article(url)
+    results = analyzer.analyze_article(args.url, max_sentences=args.sentences, max_claims=args.claims)
     
     # Save results
-    output_filename = "article_analysis_{}.json".format(url.split('/')[-1])
+    output_filename = "article_analysis_{}.json".format(args.url.split('/')[-1])
     analyzer.save_results(results, output_filename)
     
     # Print summary
@@ -268,7 +282,8 @@ def main():
     print(f"\n=== ANALYSIS COMPLETE ===")
     print(f"Total sentences analyzed: {total_sentences}")
     print(f"Total claims extracted: {total_claims}")
-    print(f"Average claims per sentence: {total_claims/total_sentences:.2f}")
+    if total_sentences > 0:
+        print(f"Average claims per sentence: {total_claims/total_sentences:.2f}")
 
 
 if __name__ == "__main__":
