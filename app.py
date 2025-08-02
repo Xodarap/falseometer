@@ -33,9 +33,9 @@ def analyze_article():
         
         # Convert parameters to integers with limits
         try:
-            max_sentences = int(max_sentences) if max_sentences else 50
+            max_sentences = int(max_sentences) if max_sentences else 5
             max_claims = int(max_claims) if max_claims else 10
-            skip_sentences = int(skip_sentences) if skip_sentences else 0
+            skip_sentences = int(skip_sentences) if skip_sentences else 5
             
             # Enforce maximums
             if max_sentences > 50:
@@ -112,9 +112,9 @@ def api_analyze():
             return jsonify({'error': 'URL is required'}), 400
         
         url = data['url']
-        max_sentences = data.get('max_sentences', 50)
+        max_sentences = data.get('max_sentences', 5)
         max_claims = data.get('max_claims', 10)
-        skip_sentences = data.get('skip_sentences', 0)
+        skip_sentences = data.get('skip_sentences', 5)
         
         # Enforce maximums
         if max_sentences and max_sentences > 50:
