@@ -31,11 +31,20 @@ def analyze_article():
             flash('Please provide a URL to analyze', 'error')
             return redirect(url_for('index'))
         
-        # Convert parameters to integers
+        # Convert parameters to integers with limits
         try:
-            max_sentences = int(max_sentences) if max_sentences else None
-            max_claims = int(max_claims) if max_claims else None
+            max_sentences = int(max_sentences) if max_sentences else 50
+            max_claims = int(max_claims) if max_claims else 10
             skip_sentences = int(skip_sentences) if skip_sentences else 0
+            
+            # Enforce maximums
+            if max_sentences > 50:
+                flash('Maximum sentences limited to 50 for performance reasons', 'warning')
+                max_sentences = 50
+            if max_claims > 10:
+                flash('Maximum claims per sentence limited to 10 for performance reasons', 'warning')
+                max_claims = 10
+                
         except ValueError:
             flash('Please provide valid numbers for sentence and claim limits', 'error')
             return redirect(url_for('index'))
@@ -103,9 +112,15 @@ def api_analyze():
             return jsonify({'error': 'URL is required'}), 400
         
         url = data['url']
-        max_sentences = data.get('max_sentences')
-        max_claims = data.get('max_claims')
+        max_sentences = data.get('max_sentences', 50)
+        max_claims = data.get('max_claims', 10)
         skip_sentences = data.get('skip_sentences', 0)
+        
+        # Enforce maximums
+        if max_sentences and max_sentences > 50:
+            max_sentences = 50
+        if max_claims and max_claims > 10:
+            max_claims = 10
         
         # Create analyzer and run analysis
         analyzer = ArticleAnalyzer()

@@ -34,16 +34,16 @@
                             <div class="mb-3">
                                 <label for="max_sentences" class="form-label">Max Sentences</label>
                                 <input type="number" class="form-control" id="max_sentences" name="max_sentences" 
-                                       min="1" placeholder="All">
-                                <div class="form-text">Limit analysis to N sentences</div>
+                                       min="1" max="50" value="50" placeholder="50">
+                                <div class="form-text">Limit analysis to N sentences (max: 50)</div>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="max_claims" class="form-label">Max Claims/Sentence</label>
                                 <input type="number" class="form-control" id="max_claims" name="max_claims" 
-                                       min="1" placeholder="All">
-                                <div class="form-text">Limit claims per sentence</div>
+                                       min="1" max="10" value="10" placeholder="10">
+                                <div class="form-text">Limit claims per sentence (max: 10)</div>
                             </div>
                         </div>
                     </div>
@@ -68,7 +68,13 @@
                 </div>
 
                 <div class="alert alert-info mt-3">
-                    <strong>Note:</strong> Analysis requires an OpenAI API key. Processing may take 1-2 minutes depending on article length.
+                    <strong>Performance Limits:</strong> 
+                    <ul class="mb-0 mt-2">
+                        <li>Maximum 50 sentences per analysis</li>
+                        <li>Maximum 10 claims per sentence</li>
+                        <li>Analysis requires OpenAI API key</li>
+                        <li>Processing takes 1-2 minutes depending on article length</li>
+                    </ul>
                 </div>
             </div>
         </div>
