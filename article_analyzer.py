@@ -13,6 +13,7 @@ This module creates a LangChain agent that analyzes articles by:
 import os
 import re
 import json
+import asyncio
 from typing import List
 from dataclasses import dataclass
 import requests
@@ -200,6 +201,24 @@ class ArticleAnalyzer:
             print(f"Error calculating interpretation probability: {str(e)}")
             return 0.5, f"Error: {str(e)}"
     
+    async def calculate_interpretation_probability_async(self, sentence: str, claim: str, article_text: str) -> tuple[float, str]:
+        """Async version of calculate_interpretation_probability."""
+        try:
+            prompt_messages = self.interpretation_probability_prompt.format_messages(
+                article_text=article_text, sentence=sentence, claim=claim
+            )
+            
+            # Run the synchronous LLM call in a thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(None, self.llm.invoke, prompt_messages)
+            response_text = response.content.strip()
+            
+            return self._parse_probability_response(response_text)
+            
+        except Exception as e:
+            print(f"Error calculating interpretation probability: {str(e)}")
+            return 0.5, f"Error: {str(e)}"
+    
     def calculate_truth_probability(self, claim: str, article_text: str) -> tuple[float, str]:
         """Calculate probability that the claim is true."""
         try:
@@ -207,6 +226,24 @@ class ArticleAnalyzer:
                 article_text=article_text, claim=claim
             )
             response = self.llm.invoke(prompt_messages)
+            response_text = response.content.strip()
+            
+            return self._parse_probability_response(response_text)
+            
+        except Exception as e:
+            print(f"Error calculating truth probability: {str(e)}")
+            return 0.5, f"Error: {str(e)}"
+    
+    async def calculate_truth_probability_async(self, claim: str, article_text: str) -> tuple[float, str]:
+        """Async version of calculate_truth_probability."""
+        try:
+            prompt_messages = self.truth_probability_prompt.format_messages(
+                article_text=article_text, claim=claim
+            )
+            
+            # Run the synchronous LLM call in a thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(None, self.llm.invoke, prompt_messages)
             response_text = response.content.strip()
             
             return self._parse_probability_response(response_text)
@@ -260,6 +297,37 @@ class ArticleAnalyzer:
             else:
                 return 0.5, f"Parse failed: {response_text}"
     
+    async def analyze_claims_parallel(self, sentence: str, claim_texts: List[str], article_text: str) -> List[Claim]:
+        """Analyze all claims for a sentence in parallel."""
+        async def analyze_single_claim(claim_text: str) -> Claim:
+            # Run both probability calculations concurrently
+            interp_task = self.calculate_interpretation_probability_async(sentence, claim_text, article_text)
+            truth_task = self.calculate_truth_probability_async(claim_text, article_text)
+            
+            # Wait for both to complete
+            (prob_interpreted, interp_explanation), (prob_true, truth_explanation) = await asyncio.gather(
+                interp_task, truth_task
+            )
+            
+            # Calculate microlies: (p(claim made) * p(claim false))^3
+            prob_false = 1.0 - prob_true
+            microlies = (prob_interpreted * prob_false) ** 3 * 1000000
+            
+            return Claim(
+                text=claim_text,
+                probability_interpreted=prob_interpreted,
+                probability_true=prob_true,
+                interpretation_explanation=interp_explanation,
+                truth_explanation=truth_explanation,
+                microlies=microlies
+            )
+        
+        # Process all claims in parallel
+        claim_tasks = [analyze_single_claim(claim_text) for claim_text in claim_texts]
+        claims = await asyncio.gather(*claim_tasks)
+        
+        return claims
+    
     def analyze_article(self, url: str, max_sentences: int = None, max_claims: int = None, skip_sentences: int = 0) -> List[SentenceAnalysis]:
         """Analyze an entire article from URL."""
         print(f"Fetching article from: {url}")
@@ -296,31 +364,19 @@ class ArticleAnalyzer:
             else:
                 print(f"Found {len(claim_texts)} potential claims")
             
-            claims = []
-            for claim_text in claim_texts:
-                print(f"  Analyzing claim: {claim_text}")
+            # Use parallel processing for claims analysis
+            if claim_texts:
+                print(f"  Analyzing {len(claim_texts)} claims in parallel...")
+                claims = asyncio.run(self.analyze_claims_parallel(sentence, claim_texts, article_text))
                 
-                # Calculate probabilities with explanations
-                prob_interpreted, interp_explanation = self.calculate_interpretation_probability(sentence, claim_text, article_text)
-                prob_true, truth_explanation = self.calculate_truth_probability(claim_text, article_text)
-                
-                # Calculate microlies: (p(claim made) * p(claim false))^3
-                prob_false = 1.0 - prob_true
-                microlies = (prob_interpreted * prob_false) ** 3 * 1000000
-                
-                claim = Claim(
-                    text=claim_text,
-                    probability_interpreted=prob_interpreted,
-                    probability_true=prob_true,
-                    interpretation_explanation=interp_explanation,
-                    truth_explanation=truth_explanation,
-                    microlies=microlies
-                )
-                claims.append(claim)
-                
-                print(f"    P(interpreted): {prob_interpreted:.3f}")
-                print(f"    P(true): {prob_true:.3f}")
-                print(f"    Microlies: {microlies:.6f}")
+                # Print results for each claim
+                for claim in claims:
+                    print(f"  Claim: {claim.text}")
+                    print(f"    P(interpreted): {claim.probability_interpreted:.3f}")
+                    print(f"    P(true): {claim.probability_true:.3f}")
+                    print(f"    Microlies: {claim.microlies:.6f}")
+            else:
+                claims = []
             
             # Calculate sentence-level microlies (sum of all claim microlies)
             sentence_microlies = sum(claim.microlies for claim in claims)
