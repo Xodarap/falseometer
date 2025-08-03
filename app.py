@@ -3,7 +3,6 @@ Flask web application for Article Analyzer
 """
 
 import os
-import json
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
 from datetime import datetime
 from article_analyzer import ArticleAnalyzer
