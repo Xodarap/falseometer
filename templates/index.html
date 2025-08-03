@@ -48,6 +48,8 @@
                             <div class="mb-3">
                                 <label for="llm_model" class="form-label">Language Model</label>
                                 <select class="form-select" id="llm_model" name="llm_model">
+                                    <option value="o3" {% if llm_model == 'o3' %}selected{% endif %}>o3 (Best Reasoning)</option>
+                                    <option value="o3-mini" {% if llm_model == 'o3-mini' %}selected{% endif %}>o3-mini (Fast Reasoning)</option>
                                     <option value="gpt-4o-mini" {% if llm_model == 'gpt-4o-mini' or not llm_model %}selected{% endif %}>GPT-4o Mini (Fast, Cheap)</option>
                                     <option value="gpt-4o" {% if llm_model == 'gpt-4o' %}selected{% endif %}>GPT-4o (Better Quality)</option>
                                     <option value="gpt-4.1" {% if llm_model == 'gpt-4.1' %}selected{% endif %}>GPT-4.1 (Latest)</option>

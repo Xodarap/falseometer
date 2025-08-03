@@ -55,7 +55,9 @@ class ArticleAnalyzer:
                 "You can get an API key from: https://platform.openai.com/api-keys\n"
                 "Create a .env file with: OPENAI_API_KEY=your-api-key-here"
             )
-        self.llm = ChatOpenAI(model=model_name, temperature=0.1)
+        
+        self.llm = ChatOpenAI(model=model_name)
+        
         self.setup_prompts()
     
     def setup_prompts(self):
