@@ -124,6 +124,18 @@ class ArticleAnalyzer:
             for script in soup(["script", "style"]):
                 script.decompose()
             
+            # Add spaces after block elements before extracting text
+            block_elements = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                            'li', 'br', 'hr', 'blockquote', 'pre', 'section', 'article']
+            for tag_name in block_elements:
+                for tag in soup.find_all(tag_name):
+                    if tag.string:
+                        tag.string.replace_with(tag.string + ' ')
+                    elif tag.get_text():
+                        # Insert space after the tag
+                        if tag.next_sibling:
+                            tag.insert_after(' ')
+            
             # Get text content
             text = soup.get_text()
             
@@ -131,6 +143,10 @@ class ArticleAnalyzer:
             lines = (line.strip() for line in text.splitlines())
             chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
             text = ' '.join(chunk for chunk in chunks if chunk)
+            
+            # Clean up multiple spaces
+            import re
+            text = re.sub(r'\s+', ' ', text).strip()
             
             return text
             
