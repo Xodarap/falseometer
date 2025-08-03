@@ -18,12 +18,14 @@ def index():
     max_sentences = request.args.get('max_sentences', '')
     max_claims = request.args.get('max_claims', '')
     skip_sentences = request.args.get('skip_sentences', '')
+    llm_model = request.args.get('llm_model', '')
     
     return render_template('index.html', 
                          url=url,
                          max_sentences=max_sentences,
                          max_claims=max_claims,
-                         skip_sentences=skip_sentences)
+                         skip_sentences=skip_sentences,
+                         llm_model=llm_model)
 
 @app.route('/analyze', methods=['POST'])
 def analyze_article():
@@ -36,6 +38,7 @@ def analyze_article():
         max_sentences = request.form.get('max_sentences', '')
         max_claims = request.form.get('max_claims', '')
         skip_sentences = request.form.get('skip_sentences', '0')
+        llm_model = request.form.get('llm_model', 'gpt-4o-mini')
         
         # Validate input
         if input_method == 'url':
@@ -68,7 +71,7 @@ def analyze_article():
             return redirect(url_for('index'))
         
         # Create analyzer and run analysis
-        analyzer = ArticleAnalyzer()
+        analyzer = ArticleAnalyzer(model_name=llm_model)
         
         try:
             if input_method == 'url':
@@ -128,7 +131,8 @@ def analyze_article():
             # Include parameters for sharing
             "max_sentences": max_sentences,
             "max_claims": max_claims,
-            "skip_sentences": skip_sentences
+            "skip_sentences": skip_sentences,
+            "llm_model": llm_model
         }
         
         return render_template('results.html', 
@@ -152,6 +156,7 @@ def api_analyze():
         max_sentences = data.get('max_sentences', 5)
         max_claims = data.get('max_claims', 10)
         skip_sentences = data.get('skip_sentences', 5)
+        llm_model = data.get('llm_model', 'gpt-4o-mini')
         
         # Enforce maximums
         if max_sentences and max_sentences > 50:
@@ -160,7 +165,7 @@ def api_analyze():
             max_claims = 10
         
         # Create analyzer and run analysis
-        analyzer = ArticleAnalyzer()
+        analyzer = ArticleAnalyzer(model_name=llm_model)
         results = analyzer.analyze_article(
             url, 
             max_sentences=max_sentences, 
@@ -214,6 +219,7 @@ def analyze_get():
         max_sentences = request.args.get('max_sentences', '5')
         max_claims = request.args.get('max_claims', '10')
         skip_sentences = request.args.get('skip_sentences', '3')
+        llm_model = request.args.get('llm_model', 'gpt-4o-mini')
         
         # Validate URL
         if not url:
@@ -237,7 +243,7 @@ def analyze_get():
             return redirect(url_for('index'))
         
         # Create analyzer and run analysis
-        analyzer = ArticleAnalyzer()
+        analyzer = ArticleAnalyzer(model_name=llm_model)
         
         try:
             results = analyzer.analyze_article(
@@ -287,7 +293,8 @@ def analyze_get():
             # Include parameters for sharing
             "max_sentences": max_sentences,
             "max_claims": max_claims,
-            "skip_sentences": skip_sentences
+            "skip_sentences": skip_sentences,
+            "llm_model": llm_model
         }
         
         return render_template('results.html', 

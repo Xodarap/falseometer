@@ -44,7 +44,21 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="llm_model" class="form-label">Language Model</label>
+                                <select class="form-select" id="llm_model" name="llm_model">
+                                    <option value="gpt-4o-mini" {% if llm_model == 'gpt-4o-mini' or not llm_model %}selected{% endif %}>GPT-4o Mini (Fast, Cheap)</option>
+                                    <option value="gpt-4o" {% if llm_model == 'gpt-4o' %}selected{% endif %}>GPT-4o (Better Quality)</option>
+                                    <option value="gpt-4.1" {% if llm_model == 'gpt-4.1' %}selected{% endif %}>GPT-4.1 (Latest)</option>
+                                    <option value="gpt-4.1-mini" {% if llm_model == 'gpt-4.1-mini' %}selected{% endif %}>GPT-4.1 Mini (Fast, Latest)</option>
+                                    <option value="gpt-4-turbo" {% if llm_model == 'gpt-4-turbo' %}selected{% endif %}>GPT-4 Turbo</option>
+                                    <option value="gpt-3.5-turbo" {% if llm_model == 'gpt-3.5-turbo' %}selected{% endif %}>GPT-3.5 Turbo (Fastest)</option>
+                                </select>
+                                <div class="form-text">Choose AI model for analysis</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="skip_sentences" class="form-label">Skip Sentences</label>
                                 <input type="number" class="form-control" id="skip_sentences" name="skip_sentences" 
@@ -52,7 +66,7 @@
                                 <div class="form-text">Skip first N sentences</div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="max_sentences" class="form-label">Max Sentences</label>
                                 <input type="number" class="form-control" id="max_sentences" name="max_sentences" 
@@ -60,7 +74,7 @@
                                 <div class="form-text">Limit analysis to N sentences (max: 5)</div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="max_claims" class="form-label">Max Claims/Sentence</label>
                                 <input type="number" class="form-control" id="max_claims" name="max_claims" 
