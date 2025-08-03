@@ -16,7 +16,7 @@
                     <div class="mb-3">
                         <label for="url" class="form-label">Article URL *</label>
                         <input type="url" class="form-control" id="url" name="url" required 
-                               value="https://en.wikipedia.org/wiki/Health_Information_Technology_for_Economic_and_Clinical_Health_Act"
+                               value="{{ url or 'https://en.wikipedia.org/wiki/Health_Information_Technology_for_Economic_and_Clinical_Health_Act' }}"
                                placeholder="https://en.wikipedia.org/wiki/Health_Information_Technology_for_Economic_and_Clinical_Health_Act"
                                pattern="https?://.*">
                         <div class="form-text">Enter the full URL of the article you want to analyze</div>
@@ -27,7 +27,7 @@
                             <div class="mb-3">
                                 <label for="skip_sentences" class="form-label">Skip Sentences</label>
                                 <input type="number" class="form-control" id="skip_sentences" name="skip_sentences" 
-                                       min="0" value="3" placeholder="3">
+                                       min="0" value="{{ skip_sentences or '3' }}" placeholder="3">
                                 <div class="form-text">Skip first N sentences</div>
                             </div>
                         </div>
@@ -35,7 +35,7 @@
                             <div class="mb-3">
                                 <label for="max_sentences" class="form-label">Max Sentences</label>
                                 <input type="number" class="form-control" id="max_sentences" name="max_sentences" 
-                                       min="1" max="5" value="5" placeholder="5">
+                                       min="1" max="5" value="{{ max_sentences or '5' }}" placeholder="5">
                                 <div class="form-text">Limit analysis to N sentences (max: 5)</div>
                             </div>
                         </div>
@@ -43,7 +43,7 @@
                             <div class="mb-3">
                                 <label for="max_claims" class="form-label">Max Claims/Sentence</label>
                                 <input type="number" class="form-control" id="max_claims" name="max_claims" 
-                                       min="1" max="10" value="10" placeholder="10">
+                                       min="1" max="10" value="{{ max_claims or '10' }}" placeholder="10">
                                 <div class="form-text">Limit claims per sentence (max: 10)</div>
                             </div>
                         </div>

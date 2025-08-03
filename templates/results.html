@@ -147,9 +147,14 @@
             <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
                 ← Analyze Another Article
             </a>
-            <button class="btn btn-outline-secondary" onclick="downloadResults()">
-                💾 Download JSON Results
-            </button>
+            <div>
+                <button class="btn btn-outline-info me-2" onclick="shareAnalysis()">
+                    🔗 Share Analysis
+                </button>
+                <button class="btn btn-outline-secondary" onclick="downloadResults()">
+                    💾 Download JSON Results
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -176,6 +181,36 @@ function downloadResults() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+function shareAnalysis() {
+    // Build the shareable URL with parameters
+    const baseUrl = window.location.origin + '/analyze';
+    const params = new URLSearchParams({
+        url: "{{ summary.url }}",
+        max_sentences: {{ summary.max_sentences }},
+        max_claims: {{ summary.max_claims }},
+        skip_sentences: {{ summary.skip_sentences }}
+    });
+    
+    const shareUrl = baseUrl + '?' + params.toString();
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(shareUrl).then(function() {
+        // Show success message
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '✅ Copied!';
+        button.disabled = true;
+        
+        setTimeout(function() {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }, 2000);
+    }).catch(function(err) {
+        // Fallback: show the URL in an alert
+        alert('Share this link:\n\n' + shareUrl);
+    });
 }
 </script>
 {% endblock %}

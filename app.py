@@ -13,7 +13,17 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-producti
 @app.route('/')
 def index():
     """Main page with form to analyze articles."""
-    return render_template('index.html')
+    # Get URL parameters to pre-fill the form
+    url = request.args.get('url', '')
+    max_sentences = request.args.get('max_sentences', '')
+    max_claims = request.args.get('max_claims', '')
+    skip_sentences = request.args.get('skip_sentences', '')
+    
+    return render_template('index.html', 
+                         url=url,
+                         max_sentences=max_sentences,
+                         max_claims=max_claims,
+                         skip_sentences=skip_sentences)
 
 @app.route('/analyze', methods=['POST'])
 def analyze_article():
@@ -95,7 +105,11 @@ def analyze_article():
             "avg_claims_per_sentence": total_claims / total_sentences if total_sentences > 0 else 0,
             "avg_microlies_per_sentence": article_microlies / total_sentences if total_sentences > 0 else 0,
             "avg_microlies_per_claim": article_microlies / total_claims if total_claims > 0 else 0,
-            "analysis_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "analysis_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            # Include parameters for sharing
+            "max_sentences": max_sentences,
+            "max_claims": max_claims,
+            "skip_sentences": skip_sentences
         }
         
         return render_template('results.html', 
@@ -171,6 +185,99 @@ def api_analyze():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/analyze')
+def analyze_get():
+    """Analyze an article via GET request with URL parameters."""
+    try:
+        # Get URL parameters
+        url = request.args.get('url', '').strip()
+        max_sentences = request.args.get('max_sentences', '5')
+        max_claims = request.args.get('max_claims', '10')
+        skip_sentences = request.args.get('skip_sentences', '3')
+        
+        # Validate URL
+        if not url:
+            flash('Please provide a URL to analyze', 'error')
+            return redirect(url_for('index'))
+        
+        # Convert parameters to integers with limits
+        try:
+            max_sentences = int(max_sentences) if max_sentences else 5
+            max_claims = int(max_claims) if max_claims else 10
+            skip_sentences = int(skip_sentences) if skip_sentences else 3
+            
+            # Enforce maximums
+            if max_sentences > 50:
+                max_sentences = 50
+            if max_claims > 10:
+                max_claims = 10
+                
+        except ValueError:
+            flash('Please provide valid numbers for sentence and claim limits', 'error')
+            return redirect(url_for('index'))
+        
+        # Create analyzer and run analysis
+        analyzer = ArticleAnalyzer()
+        
+        try:
+            results = analyzer.analyze_article(
+                url, 
+                max_sentences=max_sentences, 
+                max_claims=max_claims, 
+                skip_sentences=skip_sentences
+            )
+        except Exception as e:
+            flash(f'Analysis failed: {str(e)}', 'error')
+            return redirect(url_for('index'))
+        
+        # Prepare data for template (same as POST route)
+        sentences_data = []
+        for analysis in results:
+            sentence_data = {
+                "sentence": analysis.sentence,
+                "sentence_microlies": analysis.sentence_microlies,
+                "claims": [
+                    {
+                        "text": claim.text,
+                        "probability_interpreted": claim.probability_interpreted,
+                        "probability_true": claim.probability_true,
+                        "interpretation_explanation": claim.interpretation_explanation,
+                        "truth_explanation": claim.truth_explanation,
+                        "microlies": claim.microlies
+                    }
+                    for claim in analysis.claims
+                ]
+            }
+            sentences_data.append(sentence_data)
+        
+        # Calculate summary statistics
+        total_sentences = len(results)
+        total_claims = sum(len(analysis.claims) for analysis in results)
+        article_microlies = sum(analysis.sentence_microlies for analysis in results)
+        
+        summary = {
+            "url": url,
+            "total_sentences": total_sentences,
+            "total_claims": total_claims,
+            "article_microlies": article_microlies,
+            "avg_claims_per_sentence": total_claims / total_sentences if total_sentences > 0 else 0,
+            "avg_microlies_per_sentence": article_microlies / total_sentences if total_sentences > 0 else 0,
+            "avg_microlies_per_claim": article_microlies / total_claims if total_claims > 0 else 0,
+            "analysis_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            # Include parameters for sharing
+            "max_sentences": max_sentences,
+            "max_claims": max_claims,
+            "skip_sentences": skip_sentences
+        }
+        
+        return render_template('results.html', 
+                             sentences=sentences_data, 
+                             summary=summary)
+    
+    except Exception as e:
+        flash(f'Error analyzing article: {str(e)}', 'error')
+        return redirect(url_for('index'))
 
 @app.route('/health')
 def health_check():

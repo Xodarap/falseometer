@@ -119,7 +119,7 @@ class ArticleAnalyzer:
             headers = {
                 'User-Agent': 'Ben your.email@example.com',  # Replace with your actual info
                 'Accept-Encoding': 'gzip, deflate',
-                'Host': 'www.sec.gov'
+                'Host': requests.utils.urlparse(url).netloc
             }
             response = requests.get(url, headers=headers)
             response.raise_for_status()
