@@ -30,15 +30,24 @@ def analyze_article():
     """Analyze an article and return results."""
     try:
         # Get form data
+        input_method = request.form.get('input_method', 'url')
         url = request.form.get('url', '').strip()
+        article_text = request.form.get('article_text', '').strip()
         max_sentences = request.form.get('max_sentences', '')
         max_claims = request.form.get('max_claims', '')
         skip_sentences = request.form.get('skip_sentences', '0')
         
-        # Validate URL
-        if not url:
-            flash('Please provide a URL to analyze', 'error')
-            return redirect(url_for('index'))
+        # Validate input
+        if input_method == 'url':
+            if not url:
+                flash('Please provide a URL to analyze', 'error')
+                return redirect(url_for('index'))
+            article_source = url
+        else:  # text method
+            if not article_text:
+                flash('Please provide article text to analyze', 'error')
+                return redirect(url_for('index'))
+            article_source = "Direct Text Input"
         
         # Convert parameters to integers with limits
         try:
@@ -62,12 +71,22 @@ def analyze_article():
         analyzer = ArticleAnalyzer()
         
         try:
-            results = analyzer.analyze_article(
-                url, 
-                max_sentences=max_sentences, 
-                max_claims=max_claims, 
-                skip_sentences=skip_sentences
-            )
+            if input_method == 'url':
+                results = analyzer.analyze_article(
+                    url, 
+                    max_sentences=max_sentences, 
+                    max_claims=max_claims, 
+                    skip_sentences=skip_sentences
+                )
+                source_url = url
+            else:  # text method
+                results = analyzer.analyze_text(
+                    article_text,
+                    max_sentences=max_sentences, 
+                    max_claims=max_claims, 
+                    skip_sentences=skip_sentences
+                )
+                source_url = "Direct Text Input"
         except Exception as e:
             flash(f'Analysis failed: {str(e)}', 'error')
             return redirect(url_for('index'))
@@ -98,7 +117,7 @@ def analyze_article():
         article_microlies = sum(analysis.sentence_microlies for analysis in results)
         
         summary = {
-            "url": url,
+            "url": source_url,
             "total_sentences": total_sentences,
             "total_claims": total_claims,
             "article_microlies": article_microlies,

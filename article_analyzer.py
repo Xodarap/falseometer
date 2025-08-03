@@ -333,6 +333,70 @@ class ArticleAnalyzer:
         
         return claims
     
+    def analyze_text(self, text: str, max_sentences: int = None, max_claims: int = None, skip_sentences: int = 0) -> List[SentenceAnalysis]:
+        """Analyze text directly without fetching from URL."""
+        print("Analyzing provided text...")
+        article_text = text
+        
+        print("Splitting text into sentences...")
+        sentences = self.split_into_sentences(article_text)
+        
+        # Skip sentences if specified
+        if skip_sentences > 0:
+            sentences = sentences[skip_sentences:]
+            print(f"Skipping first {skip_sentences} sentences")
+        
+        # Limit sentences if specified
+        if max_sentences:
+            sentences = sentences[:max_sentences]
+            print(f"Limiting to first {max_sentences} sentences")
+        
+        print(f"Found {len(sentences)} sentences to analyze")
+        
+        results = []
+        
+        for i, sentence in enumerate(sentences):
+            print(f"\nAnalyzing sentence {i+1}/{len(sentences)}")
+            print(f"Sentence: {sentence[:100]}...")
+            
+            # Extract claims from sentence
+            claim_texts = self.extract_claims(sentence)
+            
+            # Limit claims if specified
+            if max_claims:
+                claim_texts = claim_texts[:max_claims]
+                print(f"Found {len(claim_texts)} potential claims (limited to {max_claims})")
+            else:
+                print(f"Found {len(claim_texts)} potential claims")
+            
+            # Use parallel processing for claims analysis
+            if claim_texts:
+                print(f"  Analyzing {len(claim_texts)} claims in parallel...")
+                claims = asyncio.run(self.analyze_claims_parallel(sentence, claim_texts, article_text))
+                
+                # Print results for each claim
+                for claim in claims:
+                    print(f"  Claim: {claim.text}")
+                    print(f"    P(interpreted): {claim.probability_interpreted:.3f}")
+                    print(f"    P(true): {claim.probability_true:.3f}")
+                    print(f"    Microlies: {claim.microlies:.6f}")
+            else:
+                claims = []
+            
+            # Calculate sentence-level microlies (sum of all claim microlies)
+            sentence_microlies = sum(claim.microlies for claim in claims)
+            
+            analysis = SentenceAnalysis(
+                sentence=sentence, 
+                claims=claims,
+                sentence_microlies=sentence_microlies
+            )
+            results.append(analysis)
+            
+            print(f"  Sentence microlies total: {sentence_microlies:.6f}")
+        
+        return results
+    
     def analyze_article(self, url: str, max_sentences: int = None, max_claims: int = None, skip_sentences: int = 0) -> List[SentenceAnalysis]:
         """Analyze an entire article from URL."""
         print(f"Fetching article from: {url}")
