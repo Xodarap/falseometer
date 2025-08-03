@@ -49,14 +49,31 @@ def analyze_article():
             flash('Please provide valid numbers for sentence and claim limits', 'error')
             return redirect(url_for('index'))
         
-        # Create analyzer and run analysis
+        # Create analyzer and run analysis with timeout protection
         analyzer = ArticleAnalyzer()
-        results = analyzer.analyze_article(
-            url, 
-            max_sentences=max_sentences, 
-            max_claims=max_claims, 
-            skip_sentences=skip_sentences
-        )
+        
+        # Set a reasonable timeout for the analysis
+        import signal
+        
+        def timeout_handler(signum, frame):
+            raise TimeoutError("Analysis timed out after 4 minutes")
+        
+        # Set 4 minute timeout (Heroku has 5 minute limit)
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(240)  # 4 minutes
+        
+        try:
+            results = analyzer.analyze_article(
+                url, 
+                max_sentences=max_sentences, 
+                max_claims=max_claims, 
+                skip_sentences=skip_sentences
+            )
+        except TimeoutError:
+            flash('Analysis timed out. Try reducing the number of sentences or claims.', 'error')
+            return redirect(url_for('index'))
+        finally:
+            signal.alarm(0)  # Cancel the alarm
         
         # Prepare data for template
         sentences_data = []
