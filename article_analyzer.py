@@ -116,7 +116,12 @@ class ArticleAnalyzer:
     def fetch_article(self, url: str) -> str:
         """Fetch and extract text content from a URL."""
         try:
-            response = requests.get(url)
+            headers = {
+                'User-Agent': 'Ben your.email@example.com',  # Replace with your actual info
+                'Accept-Encoding': 'gzip, deflate',
+                'Host': 'www.sec.gov'
+            }
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
             
             soup = BeautifulSoup(response.content, 'html.parser')
