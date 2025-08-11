@@ -18,12 +18,13 @@ from inspect_ai.agent import Agent, agent, react
 CMD_TIMEOUT = 180
 
 @agent
-def my_agent(attempts = 1) -> Agent:
-    prompt = """Does this paper's abstract seem accurate, such that a naive reader taking the abstract a face value would not be misled?
-
+def my_agent(attempts = 1, instructions = False) -> Agent:
+    extra = ""
+    if instructions:
+        extra = "\nFirst, generate a list of 10 claims which may be implied by the abstract. Then, determine if each one is supported by the paper. If any claim is determined to be misleading, mark the abstract as misleading.\n"
+    prompt = f"""Does this paper's abstract seem accurate, such that a naive reader taking the abstract a face value would not be misled?
+{extra}
 The paper and preregistration are stored in `/app/files`.
-
-First, generate a list of 10 claims which may be implied by the abstract. Then, determine if each one is supported by the paper. If any claim is determined to be misleading, mark the abstract as misleading.
 
 Submit an answer which consists solely of "Y" if the abstract is misleading or or "N" if it is not misleading.
     """
@@ -89,6 +90,11 @@ def create_samples(dataset_file: Optional[str] = None) -> Generator[Sample, None
             "paper": "NEJMoa2401177.pdf",
             "preregistration": "(none)",
             "target": "N"
+        },
+        {
+            "paper": "ai23-887_v2.pdf",
+            "preregistration": "OSF Registries _ Evaluation of the Early Literacy Support Block Grant.pdf",
+            "target": "Y"
         },
     ]
     
