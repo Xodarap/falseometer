@@ -18,14 +18,10 @@ from inspect_ai.agent import Agent, agent, react
 CMD_TIMEOUT = 180
 
 @agent
-def my_agent(attempts = 3) -> Agent:
-    prompt = """Does this claim implied by the paper abstract seem accurate, such that a naive reader taking the abstract a face value would not be misled?
-Input: {{input}}
-Claim: {{claim}}
-Paper: {paper_url}
-Preregistration plan: {preregistration_url}"""
+def my_agent(attempts = 1) -> Agent:
+    prompt = """Does this claim implied by the paper abstract seem accurate, such that a naive reader taking the abstract a face value would not be misled?"""
     return react(
-        description="i",
+        prompt=prompt,
         tools = [
                 bash(CMD_TIMEOUT), 
                 python(CMD_TIMEOUT)
@@ -43,7 +39,7 @@ def implied_claims_generation(dataset_file: Optional[str] = None) -> Task:
     return Task(
         dataset=list(create_samples(dataset_file)), 
         solver=my_agent(),
-        sandbox="docker"
+        sandbox=("docker", "compose.yaml")
     )
 
 
@@ -69,11 +65,13 @@ def create_samples(dataset_file: Optional[str] = None) -> Generator[Sample, None
     else:
         samples_data = default_samples
     
-    for sample_data in samples_data:
-        claim = sample_data["claim"]
-        
+    template = """Claim: {claim}
+Paper: {paper_url}
+Preregistration plan: {preregistration_url}"""
+    
+    for sample_data in samples_data:        
         yield Sample(
-            input=claim,
+            input=template.format(claim = sample_data['claim'], paper_url = sample_data['paper_url'], preregistration_url=sample_data['preregistration_url']),
             target="N",
             metadata={
             }
