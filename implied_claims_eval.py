@@ -56,19 +56,28 @@ def create_samples(dataset_file: Optional[str] = None) -> Generator[Sample, None
     # Default sample data if no file provided
     default_samples = [
         {
-            "claim": "The preregistered analysis plan eliminates or reduces researcher bias and data mining",
             "paper": "Wyse_CensusMedicaid.pdf",
-            "preregistration": "4hyjr.pdf"
+            "preregistration": "4hyjr.pdf",
+            "target": "Y"
+        },
+        {
+            "paper": "Effect of a Randomized Interventional School-Based Vision Program on Academic Performance of Students in Grades 3 to 7_ A Cluster Randomized Clinical Trial _ Optics and Refraction _ JAMA Ophthalmology _ JAMA Network.pdf",
+            "preregistration": "OSF _ VTL analysis plan 06 06 16 RES.docx.pdf",
+            "target": "Y"
+        },
+        {
+            "paper": "V07_ASSISTments-tech-report_FINAL-ADA-1.pdf",
+            "preregistration": "OSF _ Pre-analysis plan revised 7.15.2020.pdf",
+            "target": "N"
         }
     ]
     
-    template = """Claim: {claim}
-Paper: {paper}
+    template = """Paper: {paper}
 Preregistration plan: {preregistration}"""
     
     for sample_data in default_samples:        
         yield Sample(
-            input=template.format(claim = sample_data['claim'], paper= sample_data['paper'], preregistration=sample_data['preregistration']),
-            target="Y",
+            input=template.format(paper= sample_data['paper'], preregistration=sample_data['preregistration']),
+            target=sample_data["target"],
             metadata={}
         )
