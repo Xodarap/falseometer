@@ -69,7 +69,27 @@ def create_samples(dataset_file: Optional[str] = None) -> Generator[Sample, None
             "paper": "V07_ASSISTments-tech-report_FINAL-ADA-1.pdf",
             "preregistration": "OSF _ Pre-analysis plan revised 7.15.2020.pdf",
             "target": "N"
-        }
+        },
+        {
+            "paper": "long-term-effectiveness-multiple-measures-assessment.pdf",
+            "preregistration": "6700.1v2.pdf",
+            "target": "Y"
+        },
+        {
+            "paper": "program-effects-fss.pdf",
+            "preregistration": "(none)",
+            "target": "N"
+        },
+        {
+            "paper": "ssrn-4978991",
+            "preregistration": "(none)",
+            "target": "N"
+        },
+        {
+            "paper": "NEJMoa2401177.pdf",
+            "preregistration": "(none)",
+            "target": "N"
+        },
     ]
     
     template = """Paper: {paper}
