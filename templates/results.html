@@ -37,8 +37,8 @@
                             <div class="col-md-4">
                                 <div class="card bg-light">
                                     <div class="card-body">
-                                        <h2 class="card-title {% if summary.article_microlies > 0.1 %}text-danger{% elif summary.article_microlies > 0.01 %}text-warning{% else %}text-success{% endif %}">
-                                            {{ "%.6f"|format(summary.article_microlies) }}
+                                        <h2 class="card-title {% if summary.article_microlies >= 500000 %}text-danger{% elif summary.article_microlies >= 1000 %}text-warning{% else %}text-success{% endif %}">
+                                            {{ "%.0f"|format(summary.article_microlies) }}
                                         </h2>
                                         <p class="card-text">Total Article Microlies</p>
                                     </div>
@@ -47,7 +47,7 @@
                             <div class="col-md-4">
                                 <div class="card bg-light">
                                     <div class="card-body">
-                                        <h2 class="card-title text-info">{{ "%.6f"|format(summary.avg_microlies_per_sentence) }}</h2>
+                                        <h2 class="card-title {% if summary.avg_microlies_per_sentence >= 500000 %}text-danger{% elif summary.avg_microlies_per_sentence >= 1000 %}text-warning{% else %}text-success{% endif %}">{{ "%.0f"|format(summary.avg_microlies_per_sentence) }}</h2>
                                         <p class="card-text">Avg Microlies/Sentence</p>
                                     </div>
                                 </div>
@@ -55,7 +55,7 @@
                             <div class="col-md-4">
                                 <div class="card bg-light">
                                     <div class="card-body">
-                                        <h2 class="card-title text-info">{{ "%.6f"|format(summary.avg_microlies_per_claim) }}</h2>
+                                        <h2 class="card-title {% if summary.avg_microlies_per_claim >= 500000 %}text-danger{% elif summary.avg_microlies_per_claim >= 1000 %}text-warning{% else %}text-success{% endif %}">{{ "%.0f"|format(summary.avg_microlies_per_claim) }}</h2>
                                         <p class="card-text">Avg Microlies/Claim</p>
                                     </div>
                                 </div>
@@ -76,8 +76,8 @@
                 <div class="sentence-analysis mb-4 p-3 border rounded">
                     <h5 class="mb-3">
                         Sentence {{ loop.index }}
-                        <span class="badge {% if sentence.sentence_microlies > 0.01 %}bg-danger{% elif sentence.sentence_microlies > 0.001 %}bg-warning{% else %}bg-success{% endif %} ms-2">
-                            Microlies: {{ "%.6f"|format(sentence.sentence_microlies) }}
+                        <span class="badge {% if sentence.sentence_microlies >= 500000 %}bg-danger{% elif sentence.sentence_microlies >= 1000 %}bg-warning{% else %}bg-success{% endif %} ms-2">
+                            Microlies: {{ "%.0f"|format(sentence.sentence_microlies) }}
                         </span>
                     </h5>
                     
@@ -92,8 +92,8 @@
                         <div class="claim-card card mb-3">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <strong>Claim {{ loop.index }}</strong>
-                                <span class="badge {% if claim.microlies > 0.01 %}bg-danger{% elif claim.microlies > 0.001 %}bg-warning{% else %}bg-success{% endif %}">
-                                    Microlies: {{ "%.6f"|format(claim.microlies) }}
+                                <span class="badge {% if claim.microlies >= 500000 %}bg-danger{% elif claim.microlies >= 1000 %}bg-warning{% else %}bg-success{% endif %}">
+                                    Microlies: {{ "%.0f"|format(claim.microlies) }}
                                 </span>
                             </div>
                             <div class="card-body">

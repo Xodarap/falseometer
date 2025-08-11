@@ -94,6 +94,24 @@ wheels = [
 ]
 
 [[package]]
+name = "anthropic"
+version = "0.62.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "httpx" },
+    { name = "jiter" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cb/89/d41aa785f724275ff2a3135d4a656ba42c786e7a140973cbd7315dd2d5d2/anthropic-0.62.0.tar.gz", hash = "sha256:d45389229db9e443ea1a877f8d63309947f134991473cf8e88efee322840d084", size = 427073, upload-time = "2025-08-08T13:28:54.411Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a1/2f/53d41ff5d8fee7c77030a7fbf3432d0c7db5b799596b7d8e581bcb9a377d/anthropic-0.62.0-py3-none-any.whl", hash = "sha256:adcf2af98aa2b11e3b7c71afb2e0cb0613f679ad4a18ef58c38f17784b3df72e", size = 296625, upload-time = "2025-08-08T13:28:53.042Z" },
+]
+
+[[package]]
 name = "anyio"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -958,6 +976,7 @@ name = "pedant-eval"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "anthropic" },
     { name = "beautifulsoup4" },
     { name = "flask" },
     { name = "inspect-ai" },
@@ -969,6 +988,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anthropic", specifier = ">=0.62.0" },
     { name = "beautifulsoup4" },
     { name = "flask", specifier = ">=3.1.1" },
     { name = "inspect-ai" },
