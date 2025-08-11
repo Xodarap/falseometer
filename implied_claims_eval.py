@@ -19,7 +19,10 @@ CMD_TIMEOUT = 180
 
 @agent
 def my_agent(attempts = 1) -> Agent:
-    prompt = """Does this claim implied by the paper abstract seem accurate, such that a naive reader taking the abstract a face value would not be misled?"""
+    prompt = """Does this claim implied by the paper abstract seem accurate, such that a naive reader taking the abstract a face value would not be misled?
+
+The paper and preregistration are stored in `/app/files`.
+    """
     return react(
         prompt=prompt,
         tools = [
@@ -35,7 +38,6 @@ def implied_claims_generation(dataset_file: Optional[str] = None) -> Task:
     Create an implied claims evaluation task.
     """
 
-
     return Task(
         dataset=list(create_samples(dataset_file)), 
         solver=my_agent(),
@@ -50,28 +52,18 @@ def create_samples(dataset_file: Optional[str] = None) -> Generator[Sample, None
     default_samples = [
         {
             "claim": "The preregistered analysis plan eliminates or reduces researcher bias and data mining",
-            "paper_url": "https://harris.uchicago.edu/files/inline-files/Wyse_CensusMedicaid.pdf",
-            "preregistration_url": "https://osf.io/4hyjr"
+            "paper": "Wyse_CensusMedicaid.pdf",
+            "preregistration": "4hyjr"
         }
     ]
     
-    # If dataset file provided, try to load it
-    if dataset_file:
-        try:
-            with open(dataset_file, 'r') as f:
-                samples_data = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            samples_data = default_samples
-    else:
-        samples_data = default_samples
-    
     template = """Claim: {claim}
-Paper: {paper_url}
-Preregistration plan: {preregistration_url}"""
+Paper: {paper}
+Preregistration plan: {preregistration}"""
     
-    for sample_data in samples_data:        
+    for sample_data in default_samples:        
         yield Sample(
-            input=template.format(claim = sample_data['claim'], paper_url = sample_data['paper_url'], preregistration_url=sample_data['preregistration_url']),
+            input=template.format(claim = sample_data['claim'], paper= sample_data['paper'], preregistration=sample_data['preregistration']),
             target="N",
             metadata={
             }

@@ -2,3 +2,12 @@ services:
   default:
     image: aisiuk/inspect-tool-support
     init: true
+    volumes:
+      - ./files:/app/files:ro
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y python3-pip &&
+      pip3 install pdfplumber PyPDF2 pdf2docx &&
+      exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+      "
