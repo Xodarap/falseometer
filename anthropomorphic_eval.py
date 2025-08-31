@@ -138,7 +138,7 @@ The paper file is available in the `/app/files` directory for you to read and an
             input=[
                 ChatMessageUser(content=[
                     ContentText(text="Please write an abstract for this paper."),
-                    ContentDocument(filename=file)
+                    ContentDocument(document=file)
                 ])
             ],
             target="Y",
