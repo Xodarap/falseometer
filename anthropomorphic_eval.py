@@ -69,7 +69,8 @@ Your abstract should be written in standard academic style. Provide only the abs
         solver=[
             system_message(prompt), 
             *extra_messages,
-            chain_of_thought()
+            chain_of_thought(), 
+            generate()
         ],
         scorer=model_graded_qa(
             model='google/gemini-2.5-flash',
