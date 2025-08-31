@@ -12,94 +12,44 @@ from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.model import ContentText, ChatMessageUser
 from inspect_ai._util.content import ContentDocument
-from inspect_ai.scorer import Score, scorer, CORRECT, INCORRECT, accuracy
-from inspect_ai.solver import system_message, generate
+from inspect_ai.scorer import Score, scorer, CORRECT, INCORRECT, accuracy, model_graded_qa
+from inspect_ai.solver import system_message, generate, chain_of_thought
 import re
 
-@scorer(metrics=[accuracy()])
-def anthropomorphic_scorer():
-    """
-    Scorer that evaluates whether generated abstracts contain anthropomorphic language.
-    """
-    
-    async def score(state, target) -> Score:
-        # Extract the generated abstract from the model response
-        response = state.output.completion
-        
-        # Look for anthropomorphic language patterns
-        anthropomorphic_detected = detect_anthropomorphic_language(response)
-        
-        # Compare with expected target (Y for anthropomorphic, N for not)
-        expected_anthropomorphic = target.upper() == "Y"
-        
-        correct = anthropomorphic_detected == expected_anthropomorphic
-        
-        return Score(
-            value=CORRECT if correct else INCORRECT,
-            explanation=f"Anthropomorphic language {'detected' if anthropomorphic_detected else 'not detected'}. Expected: {'anthropomorphic' if expected_anthropomorphic else 'non-anthropomorphic'}",
-            metadata={
-                "anthropomorphic_detected": anthropomorphic_detected,
-                "expected_anthropomorphic": expected_anthropomorphic,
-                "generated_abstract": response
-            }
-        )
-    
-    return score
-
-def detect_anthropomorphic_language(text: str) -> bool:
-    """
-    Detect anthropomorphic language in the given text.
-    
-    Returns True if anthropomorphic language is found, False otherwise.
-    """
-    # Convert to lowercase for case-insensitive matching
-    text_lower = text.lower()
-    
-    # Patterns that indicate anthropomorphic language - focusing on clearly human-like attributes
-    anthropomorphic_patterns = [
-        # Clearly human cognitive/emotional verbs
-        r'\b(ai|algorithm|model|system)\s+(believes?|thinks?|feels?|wants?|decides?|chooses?|understands?|realizes?)',
-        
-        # Human-like motivations or intentions  
-        r'\b(algorithm|model|system|ai)\s+(aims?|intends?|seeks?|attempts?|tries?|strives?|endeavors?)',
-        
-        # Emotional or psychological states
-        r'\b(ai|algorithm|model|system)\s+(is\s+)?(confident|certain|sure|optimistic|pessimistic|worried|concerned|excited|surprised|disappointed)',
-        
-        # Human-like cognitive processes
-        r'\b(ai|algorithm|model|system)\s+(recognizes?|acknowledges?|remembers?|forgets?|ignores?|focuses?|concentrates?|pays\s+attention)',
-        
-        # Direct attribution of human qualities to AI/algorithms
-        r'\b(intelligent|smart|clever|wise|foolish|naive|sophisticated|elegant|creative|innovative)\s+(ai|algorithm|model|system)',
-        
-        # Anthropomorphic verbs for AI/systems
-        r'\b(ai|algorithm|model|system)\s+(struggles?|succeeds?|fails?|excels?|behaves?|acts?|responds?|reacts?)'
-    ]
-    
-    # Check for any matching patterns
-    for pattern in anthropomorphic_patterns:
-        if re.search(pattern, text_lower):
-            return True
-    
-    # Additional check for specific clearly anthropomorphic phrases
-    anthropomorphic_phrases = [
-        "the ai thinks",
-        "the model believes", 
-        "the algorithm decides",
-        "the system learns",
-        "the ai feels",
-        "the model wants",
-        "the algorithm understands"
-    ]
-    
-    for phrase in anthropomorphic_phrases:
-        if phrase in text_lower:
-            return True
-    
-    return False
-
 @task
-def anthropomorphic_abstract_eval(dataset_file: Optional[str] = None) -> Task:
+def suggestive_with_prompt() -> Task:
+    extra_messages = [system_message("""Ensure that the abstract meets the following guideline from Lipton and Steinhardt:
+            
+3.4.1 Suggestive Definitions
+In the first avenue, a new technical term is coined that has a suggestive colloquial meaning, thus
+sneaking in connotations without the need to argue for them. This often manifests in anthropomorphic characterizations of tasks (reading comprehension [31] and music composition [59]) and
+techniques (curiosity [66] and fear [48]). A number of papers name components of proposed models
+in a manner suggestive of human cognition, e.g. “thought vectors” [36] and the “consciousness prior”
+[4]. Our goal is not to rid the academic literature of all such language; when properly qualified, these
+connections might communicate a fruitful source of inspiration. However, when a suggestive term is
+assigned technical meaning, each subsequent paper has no choice but to confuse its readers, either
+by embracing the term or by replacing it.
+Describing empirical results with loose claims of “human-level” performance can also portray
+a false sense of current capabilities. Take, for example, the “dermatologist-level classification of
+skin cancer” reported in [21]. The comparison to dermatologists conceals the fact that classifiers
+and dermatologists perform fundamentally different tasks. Real dermatologists encounter a wide
+variety of circumstances and must perform their jobs despite unpredictable changes. The machine
+classifier, however, only achieves low error on i.i.d. test data. In contrast, claims of human-level
+performance in [29] are better-qualified to refer to the ImageNet classification task (rather than
+object recognition more broadly). Even in this case, one careful paper (among many less careful
+[21, 57, 75]) was insufficient to put the public discourse back on track. Popular articles continue
+to characterize modern image classifiers as “surpassing human abilities and effectively proving that
+bigger data leads to better decisions” [23], despite demonstrations that these networks rely on
+spurious correlations, e.g. misclassifying “Asians dressed in red” as ping-pong balls [73].
+Deep learning papers are not the sole offenders; misuse of language plagues many subfields of
+ML. [49] discusses how the recent literature on fairness in ML often overloads terminology borrowed from complex legal doctrine, such as disparate impact, to name simple equations expressing
+particular notions of statistical parity. This has resulted in a literature where “fairness”, “opportunity”, and “discrimination” denote simple statistics of predictive models, confusing researchers who
+become oblivious to the difference, and policymakers who become misinformed about the ease of
+incorporating ethical desiderata into ML.""")]
+    return suggestive_abstract(extra_messages)
+
+#@task
+def suggestive_abstract(extra_messages = []) -> Task:
     """
     Create an anthropomorphic language evaluation task for generated abstracts.
     """
@@ -115,12 +65,57 @@ Please read the paper carefully and create an abstract that:
 Your abstract should be written in standard academic style. Provide only the abstract text, without any additional commentary."""
 
     return Task(
-        dataset=list(create_samples(dataset_file)), 
+        dataset=list(create_samples()), 
         solver=[
             system_message(prompt), 
-            generate()
+            *extra_messages,
+            chain_of_thought()
         ],
-        scorer=anthropomorphic_scorer()
+        scorer=model_graded_qa(
+            model='google/gemini-2.5-flash',
+            template="""
+            You are evaluating an abstract for a research paper. Consider the following point from Lipton and Steinhardt:
+            
+            3.4.1 Suggestive Definitions
+In the first avenue, a new technical term is coined that has a suggestive colloquial meaning, thus
+sneaking in connotations without the need to argue for them. This often manifests in anthropomorphic characterizations of tasks (reading comprehension [31] and music composition [59]) and
+techniques (curiosity [66] and fear [48]). A number of papers name components of proposed models
+in a manner suggestive of human cognition, e.g. “thought vectors” [36] and the “consciousness prior”
+[4]. Our goal is not to rid the academic literature of all such language; when properly qualified, these
+connections might communicate a fruitful source of inspiration. However, when a suggestive term is
+assigned technical meaning, each subsequent paper has no choice but to confuse its readers, either
+by embracing the term or by replacing it.
+Describing empirical results with loose claims of “human-level” performance can also portray
+a false sense of current capabilities. Take, for example, the “dermatologist-level classification of
+skin cancer” reported in [21]. The comparison to dermatologists conceals the fact that classifiers
+and dermatologists perform fundamentally different tasks. Real dermatologists encounter a wide
+variety of circumstances and must perform their jobs despite unpredictable changes. The machine
+classifier, however, only achieves low error on i.i.d. test data. In contrast, claims of human-level
+performance in [29] are better-qualified to refer to the ImageNet classification task (rather than
+object recognition more broadly). Even in this case, one careful paper (among many less careful
+[21, 57, 75]) was insufficient to put the public discourse back on track. Popular articles continue
+to characterize modern image classifiers as “surpassing human abilities and effectively proving that
+bigger data leads to better decisions” [23], despite demonstrations that these networks rely on
+spurious correlations, e.g. misclassifying “Asians dressed in red” as ping-pong balls [73].
+Deep learning papers are not the sole offenders; misuse of language plagues many subfields of
+ML. [49] discusses how the recent literature on fairness in ML often overloads terminology borrowed from complex legal doctrine, such as disparate impact, to name simple equations expressing
+particular notions of statistical parity. This has resulted in a literature where “fairness”, “opportunity”, and “discrimination” denote simple statistics of predictive models, confusing researchers who
+become oblivious to the difference, and policymakers who become misinformed about the ease of
+incorporating ethical desiderata into ML.
+
+Evaluate the abstract for whether or not it contains any "suggestive definitions". 
+
+[BEGIN DATA]
+[Abstract]: {answer}
+[END DATA]
+
+After assessing the submitted answer, reply with 'GRADE: $LETTER' (without quotes) where LETTER is one of C or I.  Please choose ONE option for the grade: either "C" for correct answers (i.e. the abstract does NOT contain suggestive definitions), or "I" for incorrect answers (i.e. the abstract contains suggestive definitions).
+
+For example, after reviewing a correct answer you might write 'GRADE: C' or after reviewing an incorrect answer you might write 'GRADE: I'.
+
+First, write out in a step by step manner your reasoning about the criterion to be sure that your conclusion is correct. Avoid simply stating the correct answers at the outset. Then, end with your answer formatted as 'GRADE: $LETTER' (without quotes) where LETTER is one of C or I
+            """
+        )
     )
 
 def create_samples(dataset_file: Optional[str] = None) -> Generator[Sample, None, None]:
@@ -128,10 +123,7 @@ def create_samples(dataset_file: Optional[str] = None) -> Generator[Sample, None
     
     # Default sample data with papers that might lead to anthropomorphic language
    
-    files = glob.glob("files/linguistic/*.pdf")
-    template = """Please write an abstract for the research paper: {paper}
-
-The paper file is available in the `/app/files` directory for you to read and analyze."""
+    files = glob.glob("files/linguistic/usable/*.pdf")
     
     for file in files:        
         yield Sample(
