@@ -10,7 +10,8 @@ import glob
 from typing import Optional, Generator
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
-from inspect_ai.model import ContentText, ChatMessageUser, ContentDocument
+from inspect_ai.model import ContentText, ChatMessageUser
+from inspect_ai._util.content import ContentDocument
 from inspect_ai.scorer import Score, scorer, CORRECT, INCORRECT, accuracy
 from inspect_ai.solver import system_message, generate
 import re
@@ -135,11 +136,11 @@ The paper file is available in the `/app/files` directory for you to read and an
     for file in files:        
         yield Sample(
             input=[
-    ChatMessageUser(content=[
-         ContentText(text="Please write an abstract for this paper."),
-        ContentDocument(file=file)
-    ])
-],
+                ChatMessageUser(content=[
+                    ContentText(text="Please write an abstract for this paper."),
+                    ContentDocument(filename=file)
+                ])
+            ],
             target="Y",
             metadata={
                 "paper": file,
