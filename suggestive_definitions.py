@@ -54,7 +54,7 @@ become oblivious to the difference, and policymakers who become misinformed abou
 incorporating ethical desiderata into ML.""")]
     return suggestive_abstract(extra_messages)
 
-#@task
+@task
 def suggestive_abstract(extra_messages = []) -> Task:
     prompt = """You are a scientific writing assistant. Your task is to write a clear, concise abstract for the given research paper. The abstract should summarize the paper's main findings, methodology, and conclusions in approximately 150-250 words.
 
@@ -122,7 +122,7 @@ First, write out in a step by step manner your reasoning about the criterion to 
     )
 
 def create_samples() -> Generator[Sample, None, None]:   
-    files = glob.glob("files/linguistic/usable/When*.pdf")
+    files = glob.glob("files/linguistic/usable/*.pdf")
     
     for file in files:        
         yield Sample(
