@@ -9,6 +9,9 @@ from inspect_ai.solver import system_message, generate, chain_of_thought
 
 @task
 def suggestive_with_prompt() -> Task:
+    """
+    Runs the eval but first prompts the model to avoid suggestive definitions.
+    """
     extra_messages = [system_message("""Ensure that the abstract meets the following guideline from Lipton and Steinhardt:
             
 3.4.1 Suggestive Definitions
