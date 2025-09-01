@@ -1,3 +1,15 @@
+"""
+Suggestive Definitions Evaluation
+
+This eval tests a model's ability to generate abstracts for papers and then evaluates
+whether those abstracts contain suggestive definitions.
+
+To run:
+```
+uv run inspect eval suggestive_definitions.py --model openai/gpt-5
+```
+"""
+
 import glob
 from typing import Optional, Generator
 from inspect_ai import Task, task
