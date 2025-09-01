@@ -1,20 +1,11 @@
-"""
-Anthropomorphic Language Evaluation
-
-This eval tests a model's ability to generate abstracts for papers and then evaluates
-whether those abstracts contain anthropomorphic language (attributing human characteristics
-to non-human entities like AI systems, algorithms, or research studies).
-"""
-
 import glob
 from typing import Optional, Generator
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
 from inspect_ai.model import ContentText, ChatMessageUser
 from inspect_ai._util.content import ContentDocument
-from inspect_ai.scorer import Score, scorer, CORRECT, INCORRECT, accuracy, model_graded_qa
+from inspect_ai.scorer import model_graded_qa
 from inspect_ai.solver import system_message, generate, chain_of_thought
-import re
 
 @task
 def suggestive_with_prompt() -> Task:
@@ -50,10 +41,6 @@ incorporating ethical desiderata into ML.""")]
 
 #@task
 def suggestive_abstract(extra_messages = []) -> Task:
-    """
-    Create an anthropomorphic language evaluation task for generated abstracts.
-    """
-    
     prompt = """You are a scientific writing assistant. Your task is to write a clear, concise abstract for the given research paper. The abstract should summarize the paper's main findings, methodology, and conclusions in approximately 150-250 words.
 
 Please read the paper carefully and create an abstract that:
@@ -119,11 +106,7 @@ First, write out in a step by step manner your reasoning about the criterion to 
         )
     )
 
-def create_samples(dataset_file: Optional[str] = None) -> Generator[Sample, None, None]:
-    """Create samples from dataset file or default examples."""
-    
-    # Default sample data with papers that might lead to anthropomorphic language
-   
+def create_samples() -> Generator[Sample, None, None]:   
     files = glob.glob("files/linguistic/usable/*.pdf")
     
     for file in files:        
@@ -134,9 +117,8 @@ def create_samples(dataset_file: Optional[str] = None) -> Generator[Sample, None
                     ContentDocument(document=file)
                 ])
             ],
-            target="Y",
+            target="NA",
             metadata={
-                "paper": file,
-                "description": "Anthropomorphic language"
+                "paper": file
             }
         )
