@@ -3,11 +3,11 @@ import arxiv
 # Construct the default API client.
 client = arxiv.Client()
 
-terms = ["curiosity", "human parity", ]
+terms = ["curiosity", "human parity", "deception"]
 
 # Search for the 10 most recent articles matching the keyword "quantum."
 search = arxiv.Search(
-  query = f'all:cs.lg AND abs:{terms[0]}',
+  query = f'all:cs.lg AND abs:{terms[2]}',
   max_results = 10,
   sort_by = arxiv.SortCriterion.SubmittedDate
 )

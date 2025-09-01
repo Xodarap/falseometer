@@ -122,7 +122,7 @@ First, write out in a step by step manner your reasoning about the criterion to 
     )
 
 def create_samples() -> Generator[Sample, None, None]:   
-    files = glob.glob("files/linguistic/usable/*.pdf")
+    files = glob.glob("files/linguistic/usable/When*.pdf")
     
     for file in files:        
         yield Sample(
