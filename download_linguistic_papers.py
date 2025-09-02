@@ -3,11 +3,11 @@ import arxiv
 # Construct the default API client.
 client = arxiv.Client()
 
-terms = ["curiosity", "human parity", "deception", "fear", "comprehension", "disparate impact", "fair", "dream", "creative", '"thought vector"', '"consciousness prior"', '"thought process"', "forget"]
+terms = ["curiosity", "human parity", "deception", "fear", "comprehension", "disparate impact", "fair", "dream", "creative", '"thought vector"', '"consciousness prior"', '"thought process"', "forget", "superhuman", "human-level"]
 
 # Search for the 10 most recent articles matching the keyword "quantum."
 search = arxiv.Search(
-  query = f'all:cs.lg AND abs:{terms[12]}',
+  query = f'all:cs.lg AND abs:{terms[14]}',
   max_results = 20,
   sort_by = arxiv.SortCriterion.SubmittedDate
 )
