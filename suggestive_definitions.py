@@ -19,7 +19,7 @@ from inspect_ai._util.content import ContentDocument
 from inspect_ai.scorer import model_graded_qa
 from inspect_ai.solver import system_message, generate, chain_of_thought
 
-@task
+#@task
 def suggestive_with_prompt() -> Task:
     """
     Runs the eval but first prompts the model to avoid suggestive definitions.
@@ -122,7 +122,7 @@ First, write out in a step by step manner your reasoning about the criterion to 
     )
 
 def create_samples() -> Generator[Sample, None, None]:   
-    files = glob.glob("files/linguistic/usable/*.pdf")
+    files = glob.glob("files/linguistic/*.pdf")
     
     for file in files:        
         yield Sample(
